@@ -48,17 +48,17 @@ const shouldContinue = (state: typeof MessagesAnnotation.State) => {
   const lastMessage = messages[messages.length - 1];
   // Cast here since `tool_calls` does not exist on `BaseMessage`
   const messageCastAI = lastMessage as AIMessage;
-  console.log(`messageCastAI._getType(): ${messageCastAI._getType()}`);
-  console.log(`messageCastAI.tool_calls: ${messageCastAI.tool_calls?.length}`);
+  // if the last message is not an AI message or it does not have any tool calls, we should end.
   if (messageCastAI._getType() !== "ai" || !messageCastAI.tool_calls?.length) {
-    // LLM did not call any tools, or it's not an AI message, so we should end.
     console.log("END");
     return END;
   }
 
   // Tools are provided, so we should continue.
+  // LLM knows what to do next.
   return "tools";
 };
+
 
 const workflow = new StateGraph(MessagesAnnotation)
     .addNode("agent", callModel)

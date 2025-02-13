@@ -5,6 +5,7 @@ import { z } from "zod";
 export const productSearchTool = tool(
   async ({ query }: { query: string }) => {
     console.log(query);
+    // TODO: Implement the product search
     return JSON.stringify({ productId: "123", price: 100 });
   },
   {
@@ -19,6 +20,8 @@ export const productSearchTool = tool(
 export const addToCartTool = tool(
   async ({ productId, quantity }: { productId: string, quantity: number }) => {
     console.log(productId, quantity);
+    // TODO: Implement the add to cart
+    // TODO: Return the cart items and the total price
     return JSON.stringify({ cartId: "123abc"});
   },
   {
@@ -31,16 +34,34 @@ export const addToCartTool = tool(
   }
 );
 
-export const payCartTool = tool(
+export const enterPaymentInformationTool = tool(
   async ({ cartId }: { cartId: string }) => {
     console.log(cartId);
+    // TODO: Implement the enter payment information
+    // this is where we would ask for address, card number, etc.
+    return JSON.stringify({ customerId: "123abc", paymentToken: "xyz123" });
+  },
+  {
+    name: "enterPaymentInformationTool",
+    description: "Enter payment information for address, card number, etc.",
+    parameters: z.object({
+      cartId: z.string(),
+    }),
+  }
+);
+export const executePaymentTool = tool(
+  async ({ cartId, customerId, paymentToken }: { cartId: string, customerId: string, paymentToken: string }) => {
+    console.log(cartId, customerId, paymentToken);
+    // TODO: Implement the pay for the cart
     return JSON.stringify({ paymentId: "123abc" });
   },
   {
-    name: "payCartTool",
+    name: "executePurchaseTool",
     description: "Pay for the cart",
     parameters: z.object({
       cartId: z.string(),
+      customerId: z.string(),
+      paymentToken: z.string(),
     }),
   }
 );
@@ -49,4 +70,4 @@ export const webSearchTool = new TavilySearchResults({
     maxResults: 2,
   });
 
-export const ALL_TOOLS_LIST = [webSearchTool, productSearchTool, addToCartTool, payCartTool];
+export const ALL_TOOLS_LIST = [webSearchTool, productSearchTool, addToCartTool, enterPaymentInformationTool, executePaymentTool];
