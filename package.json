@@ -1,0 +1,25 @@
+{
+  "name": "shopper-agent",
+  "description": "A shopper agent that can help you find the best deals on products",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "start": "tsx --experimental-wasm-modules -r dotenv/config src/index.ts"
+  },
+  "author": "Riccardo La Rosa",
+  "license": "MIT",
+  "dependencies": {
+    "@langchain/community": "^0.3.30",
+    "@langchain/core": "^0.3.40",
+    "@langchain/langgraph": "^0.2.46",
+    "@langchain/openai": "^0.4.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@tsconfig/recommended": "^1.0.8",
+    "dotenv": "^16.4.7",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
