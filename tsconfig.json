@@ -7,7 +7,8 @@
         "DOM"
       ],
       "target": "ES2021",
-      "module": "nodenext",
+      "module": "ESNext",
+      "moduleResolution": "Bundler",
       "sourceMap": true,
       "allowSyntheticDefaultImports": true,
       "baseUrl": "./src",

@@ -1,6 +1,30 @@
 import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
+import { findTechnicalContent } from "./lib/mongoDBRetriever";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
+
+
+export const getTokenTool = tool(
+  async () => {
+    console.log("Getting token");
+    // TODO: Implement the get token
+    // get the spec from the Open API
+    const spec = await findTechnicalContent("Get an implicit token");
+    console.log("Spec found:", spec);
+    // execute the call
+    return JSON.stringify({ 
+        
+        spec: spec 
+    });
+  },
+  {
+    name: "getTokenTool",
+    description: "Get the token for the user",
+    // parameters: z.object({
+    //   token: z.string(),
+    // }),
+  }
+);
 
 export const productSearchTool = tool(
   async ({ query }: { query: string }) => {
@@ -70,4 +94,6 @@ export const webSearchTool = new TavilySearchResults({
     maxResults: 2,
   });
 
-export const ALL_TOOLS_LIST = [webSearchTool, productSearchTool, addToCartTool, enterPaymentInformationTool, executePaymentTool];
+
+
+export const ALL_TOOLS_LIST = [webSearchTool, productSearchTool, addToCartTool, enterPaymentInformationTool, executePaymentTool, getTokenTool];
