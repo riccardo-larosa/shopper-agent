@@ -2,42 +2,97 @@ import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
 import { findTechnicalContent } from "./lib/mongoDBRetriever";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
+import { execGetRequest, execPostRequest } from "./lib/execRequests";
+import { ChatOpenAI } from "@langchain/openai";
 
 
 export const getTokenTool = tool(
   async () => {
-    console.log("Getting token");
-    // TODO: Implement the get token
-    // get the spec from the Open API
-    const spec = await findTechnicalContent("Get an implicit token");
-    console.log("Spec found:", spec);
-    // execute the call
-    return JSON.stringify({ 
-        
-        spec: spec 
+
+    const results = await execPostRequest("/oauth/access_token", "",
+      {
+        "grant_type": "implicit",
+        "client_id": process.env.EP_CLIENT_ID,
+      });
+    return JSON.stringify({
+      token: results.access_token,
     });
   },
   {
     name: "getTokenTool",
     description: "Get the token for the user",
-    // parameters: z.object({
-    //   token: z.string(),
-    // }),
+
   }
 );
 
 export const productSearchTool = tool(
-  async ({ query }: { query: string }) => {
-    console.log(query);
+  async ({ input }) => {
+    console.log(`productSearchTool: ${input}`);
     // TODO: Implement the product search
+    
+    // I Can't use the filter with regex in vectorSearch (MongoDB limitation)
+    // const filter = {
+    //   "source": { "$regex": "docs/api/catalog" }
+    // };
+    
+    // take the query and use findTechnicalContent to find the spec
+    const apiSpec = await findTechnicalContent(input);
+
+    console.log(`apiSpec: ${JSON.stringify(apiSpec)}`);
+
+    const llm = new ChatOpenAI({
+      model: "gpt-4o-mini",
+      temperature: 0,
+    });
+
+    const systemMessage = {
+      role: "system",
+      content: `
+        Given a query string in the form of an action, returns the current api spec that will be used to execute the action.
+        For instance if the text is "list all products", the API spec for listing all the products will be returned.
+        The API spec will look something like this:
+        == Docs for GET /catalog/products == 
+        description: Retrieves the list of products from the catalog. Only the products in a live status are retrieved.
+        parameters:
+        parameters:
+        - $ref: '#/components/parameters/accept-language'
+        - $ref: '#/components/parameters/channel'
+        - $ref: '#/components/parameters/tag'
+        - $ref: '#/components/parameters/filter-product'
+
+        responses:
+        '200':
+          description: The products of a catalog.
+          content:
+            application/json:
+
+      `.trim()
+    };
+
+    systemMessage.content += `
+      Here is the query: ${input}
+    `;
+
+    systemMessage.content += `
+      Here is the results: ${JSON.stringify(apiSpec)}
+    `;
+  
+    const result = await llm.invoke([systemMessage]);
+    console.log(`result: ${result}`);
+
+    // it would be good to return a structured output from the findTechnicalContent
+    // console.log(result);
+    // then use the spec to search for the product executing a get request
+    // const products = await execGetRequest(results.spec, token);
+    // return the product id and the price
     return JSON.stringify({ productId: "123", price: 100 });
   },
   {
     name: "productSearchTool",
     description: "Search for products on the store that matches the query",
-    parameters: z.object({
-      query: z.string(),
-    }),
+    schema: z.object({
+      input: z.string(),
+    })
   }
 );
 
@@ -46,7 +101,7 @@ export const addToCartTool = tool(
     console.log(productId, quantity);
     // TODO: Implement the add to cart
     // TODO: Return the cart items and the total price
-    return JSON.stringify({ cartId: "123abc"});
+    return JSON.stringify({ cartId: "123abc" });
   },
   {
     name: "addToCartTool",
@@ -91,8 +146,8 @@ export const executePaymentTool = tool(
 );
 
 export const webSearchTool = new TavilySearchResults({
-    maxResults: 2,
-  });
+  maxResults: 2,
+});
 
 
 

@@ -14,33 +14,33 @@ import {
   type AIMessage,
 } from "@langchain/core/messages";
 import { ChatOpenAI } from "@langchain/openai";
-import { ALL_TOOLS_LIST, productSearchTool } from "./tools.js";
+import { ALL_TOOLS_LIST } from "./tools";
 import { z } from "zod";
 
 
 const llm = new ChatOpenAI({
+  // model: "gpt-4o-mini", 
   model: "gpt-4o",
   temperature: 0,
 });
 
 const toolNode = new ToolNode(ALL_TOOLS_LIST);
-// const toolNode = new ToolNode([productSearchTool]);
 
 const callModel = async (state: typeof MessagesAnnotation.State) => {
-    const { messages } = state;
-  
-    const systemMessage = {
-        role: "system",
-        content:
-          "You're an expert shopper assistant that can find products in the store" +
-          "All product data require a productId to be passed in as a parameter. If you " +
-          "do not know the productId, you should use the product search tool to find it."  
-      };
-  
-    const llmWithTools = llm.bindTools(ALL_TOOLS_LIST);
-    const result = await llmWithTools.invoke([systemMessage, ...messages]);
-    return { messages: result };
+  const { messages } = state;
+
+  const systemMessage = {
+    role: "system",
+    content:
+      "You're an expert shopper assistant that can find products in the store" +
+      "All product data require a productId to be passed in as a parameter. If you " +
+      "do not know the productId, you should use the product search tool to find it."
   };
+
+  const llmWithTools = llm.bindTools(ALL_TOOLS_LIST);
+  const result = await llmWithTools.invoke([systemMessage, ...messages]);
+  return { messages: result };
+};
 
 const shouldContinue = (state: typeof MessagesAnnotation.State) => {
   const { messages } = state;
@@ -61,12 +61,12 @@ const shouldContinue = (state: typeof MessagesAnnotation.State) => {
 
 
 const workflow = new StateGraph(MessagesAnnotation)
-    .addNode("agent", callModel)
-    .addNode("tools", toolNode)
-    .addEdge(START, "agent")
-    .addConditionalEdges("agent", shouldContinue, ["tools", END])
-    .addEdge("tools", "agent")
-    .addEdge("agent", END);
+  .addNode("agent", callModel)
+  .addNode("tools", toolNode)
+  .addEdge(START, "agent")
+  .addConditionalEdges("agent", shouldContinue, ["tools", END])
+  .addEdge("tools", "agent")
+  .addEdge("agent", END);
 
 
 // Remove or comment out the previous graph export

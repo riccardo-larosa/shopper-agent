@@ -1,8 +1,7 @@
 function createHeaders(token: string) {
     const headers: Record<string, string> = {
-        'Authorization': token ? `Bearer ${token}` : '',
-        // 'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+        'Content-Type': token ? 'application/json' : 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
     };
     console.log(`headers: ${JSON.stringify(headers)}`);
@@ -56,7 +55,9 @@ export async function execPostRequest(
         const response = await fetch(baseurl + endpoint, {
             method: 'POST',
             headers: createHeaders(token),
-            body: JSON.stringify(body)
+            body: token 
+                ? JSON.stringify(body)  // for application/json
+                : new URLSearchParams(body).toString()  // for application/x-www-form-urlencoded
         });
 
         if (!response.ok) {
