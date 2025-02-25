@@ -141,4 +141,4 @@ export const webSearchTool = new TavilySearchResults({
 });
 
 
-export const ALL_TOOLS_LIST = [webSearchTool, getApiSpecTool, execGetRequestTool, execPostRequestTool, getOpenApiSpecTool];
+export const ALL_TOOLS_LIST = [webSearchTool, execGetRequestTool, execPostRequestTool, getOpenApiSpecTool];

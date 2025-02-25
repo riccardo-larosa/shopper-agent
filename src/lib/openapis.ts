@@ -1,11 +1,15 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
+import { ChatOpenAI } from "@langchain/openai";
+
 
 
 async function getFullOpenAPI(url: string, path: string, method: string) {
-    const spec = await SwaggerParser.parse(url);
+    console.log(`==> Getting full OpenAPI for ${url} ${path} ${method}`);
+    const spec = await SwaggerParser.dereference(url);
     const pathItem = spec.paths[path];
-    const operation = pathItem[method];
+    const operation = pathItem[method.toLowerCase()];
     const description = operation.description || 'No description';
+    console.log(`Description: ${description}`);
     // add parameters to the description
     const parameters = operation.parameters || [];
     const parameterString = parameters.map(param => `${param.name}: ${param.description}`).join(', ');
@@ -15,11 +19,13 @@ async function getFullOpenAPI(url: string, path: string, method: string) {
     // add request body if it exists
     const requestBody = operation.requestBody || {};
     const requestBodyString = requestBody.description || 'No request body';
+    console.log(`==> ${description} Parameters: ${parameterString} Responses: ${responseString} Request Body: ${requestBodyString}`);
     return `${description} Parameters: ${parameterString} Responses: ${responseString} Request Body: ${requestBodyString}`;
 }
 
 
 async function getAPIEndpointsAndDescriptions(url: string) {
+    console.log(`==> Getting API endpoints and descriptions for ${url}`);
     const spec = await SwaggerParser.parse(url);
     // loop through the spec and print the paths
     let endpoints = "";
@@ -39,11 +45,12 @@ async function getAPIEndpointsAndDescriptions(url: string) {
             const truncatedDescription = cleanedDescription.length > 1000
                 ? cleanedDescription.substring(0, 500) + '...'
                 : cleanedDescription;
-            
+            console.log(`${method.toUpperCase()} ${path}  ${truncatedDescription}`);
             endpoints += `${method.toUpperCase()} ${path}  ${truncatedDescription}\n`;
 
         }
     }
+    console.log(`==> Found ${endpoints.length} endpoints`);
     return endpoints;
 
 }
@@ -60,15 +67,18 @@ export async function getOpenApiSpec(query: string, url: string) {
         For instance GET /catalog/products
         or POST /pcm/products `;
 
-    const response = await openai.chat.completions.create({
+    const llm = new ChatOpenAI({
         model: "gpt-4o-mini",
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
-    });
-    const answer = response.choices[0].message.content;
+        temperature: 0,
+        });
+      
+    const response = await llm.invoke([systemPrompt, userPrompt]);
+    const answer = response.content;
     if (!answer) {
         throw new Error("No answer from GPT");
     }
-    const [method, path] = answer.split(' ');
+    const answerText = String(answer);
+    const [method, path] = answerText.split(' ');
     const fullOpenAPI = await getFullOpenAPI(url, path, method);
     return fullOpenAPI;
 }
