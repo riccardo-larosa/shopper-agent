@@ -1,4 +1,5 @@
-function createHeaders(token: string) {
+// if token is not provided, this is used to get the token
+function createHeaders(token?: string) {
     const headers: Record<string, string> = {
         ...(token && { 'Authorization': `Bearer ${token}` }),
         'Content-Type': token ? 'application/json' : 'application/x-www-form-urlencoded',
@@ -20,9 +21,6 @@ export async function execGetRequest(
 ): Promise<any> {
     try {
         const baseurl = getBaseurl();
-        // console.log(`calling execGetRequest: ${baseurl + endpoint}`);
-        // console.log(`params: ${JSON.stringify(params)}`);
-        // console.log(`headers: ${JSON.stringify(createHeaders(token))}`);
 
         const response = await fetch(baseurl + endpoint, {
             method: 'GET',
@@ -41,6 +39,7 @@ export async function execGetRequest(
     }
 }
 
+// if token is not provided, this is used to get the token
 export async function execPostRequest(
     endpoint: string,
     token: string,
@@ -51,11 +50,10 @@ export async function execPostRequest(
         const baseurl = getBaseurl();
         console.log(`calling execPostRequest: ${baseurl + endpoint}`);
         console.log(`body: ${JSON.stringify(body)}`);
-        console.log(`headers: ${JSON.stringify(createHeaders(token))}`);
         const response = await fetch(baseurl + endpoint, {
             method: 'POST',
             headers: createHeaders(token),
-            body: token 
+            body: token
                 ? JSON.stringify(body)  // for application/json
                 : new URLSearchParams(body).toString()  // for application/x-www-form-urlencoded
         });

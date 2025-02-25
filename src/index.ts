@@ -15,7 +15,7 @@ import {
 } from "@langchain/core/messages";
 import { ChatOpenAI } from "@langchain/openai";
 import { ALL_TOOLS_LIST } from "./tools";
-import { z } from "zod";
+// import { z } from "zod";
 
 
 const llm = new ChatOpenAI({
@@ -31,14 +31,22 @@ const callModel = async (state: typeof MessagesAnnotation.State) => {
 
   const systemMessage = {
     role: "system",
-    content:
-      "You're an expert shopper assistant that can find products in the store" +
-      "All product data require a productId to be passed in as a parameter. If you " +
-      "do not know the productId, you should use the product search tool to find it."
+    content: `
+      You're an expert shopper assistant that is leveraging the power of Elastic Path API to complete the task.
+      You take user input and after finding the right API endpoint to call, you make the API call to complete the task.
+      You can make GET and POST API calls to complete the task. Use the right tool for the job.
+      You don't have to show the intermediate steps, like the output of the getApiSpecTool, just the final result.
+      You can make multiple API calls to complete the task.
+      
+    `.trim()
   };
 
   const llmWithTools = llm.bindTools(ALL_TOOLS_LIST);
-  const result = await llmWithTools.invoke([systemMessage, ...messages]);
+  const result = await llmWithTools.invoke([systemMessage, ...messages], 
+    {
+      recursionLimit: 5,
+    }
+  );
   return { messages: result };
 };
 
