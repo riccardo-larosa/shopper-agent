@@ -16,16 +16,17 @@ function getBaseurl() {
 export async function execGetRequest(
     endpoint: string,
     token: string,
-    params: Record<string, any> = {},
+    // params: Record<string, any> = {},
     //baseurl: string = getBaseurl()
 ): Promise<any> {
     try {
         const baseurl = getBaseurl();
 
+        console.log(`==> GET ${baseurl + endpoint} `);
         const response = await fetch(baseurl + endpoint, {
             method: 'GET',
             headers: createHeaders(token),
-            ...params && { search: new URLSearchParams(params).toString() }
+            // ...params && { search: new URLSearchParams(params).toString() }
         });
 
         if (!response.ok) {

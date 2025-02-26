@@ -9,7 +9,7 @@ async function getFullOpenAPI(url: string, path: string, method: string) {
     const pathItem = spec.paths[path];
     const operation = pathItem[method.toLowerCase()];
     const description = operation.description || 'No description';
-    console.log(`Description: ${description}`);
+    // console.log(`Description: ${description}`);
     // add parameters to the description
     const parameters = operation.parameters || [];
     const parameterString = parameters.map(param => `${param.name}: ${param.description}`).join(', ');
@@ -19,8 +19,8 @@ async function getFullOpenAPI(url: string, path: string, method: string) {
     // add request body if it exists
     const requestBody = operation.requestBody || {};
     const requestBodyString = requestBody.description || 'No request body';
-    console.log(`==> ${description} Parameters: ${parameterString} Responses: ${responseString} Request Body: ${requestBodyString}`);
-    return `${description} Parameters: ${parameterString} Responses: ${responseString} Request Body: ${requestBodyString}`;
+    // console.log(`==> ${description} Parameters: ${parameterString} Responses: ${responseString} Request Body: ${requestBodyString}`);
+    return `method: ${method} path: ${path} description:${description} Parameters: ${parameterString} Responses: ${responseString} Request Body: ${requestBodyString}`;
 }
 
 
@@ -42,10 +42,10 @@ async function getAPIEndpointsAndDescriptions(url: string) {
             const cleanedDescription = description.includes(':::note')
                 ? description.substring(0, description.indexOf(':::note')).trim()
                 : description;
-            const truncatedDescription = cleanedDescription.length > 1000
-                ? cleanedDescription.substring(0, 500) + '...'
+            const truncatedDescription = cleanedDescription.length > 200
+                ? cleanedDescription.substring(0, 200) + '...'
                 : cleanedDescription;
-            console.log(`${method.toUpperCase()} ${path}  ${truncatedDescription}`);
+            console.log(`${method.toUpperCase()} ${path}`);
             endpoints += `${method.toUpperCase()} ${path}  ${truncatedDescription}\n`;
 
         }
@@ -56,6 +56,7 @@ async function getAPIEndpointsAndDescriptions(url: string) {
 }
 
 export async function getOpenApiSpec(query: string, url: string) {
+    console.log(`==> Getting OpenAPI spec for ${query} using ${url}`);
     const endpoints = await getAPIEndpointsAndDescriptions(url);
     const systemPrompt = `
         You are a helpful assistant that can help me find the endpoint that matches the query.
@@ -65,10 +66,10 @@ export async function getOpenApiSpec(query: string, url: string) {
         I am looking for the Method and Path that better matches the query: ${query}
         Your answer should be in the following format: Method Path. 
         For instance GET /catalog/products
-        or POST /pcm/products `;
+        or POST /pcm/products  `;
 
     const llm = new ChatOpenAI({
-        model: "gpt-4o-mini",
+        model: "gpt-4o",
         temperature: 0,
         });
       
@@ -78,7 +79,10 @@ export async function getOpenApiSpec(query: string, url: string) {
         throw new Error("No answer from GPT");
     }
     const answerText = String(answer);
+    console.log(`==> Answer: ${answerText}`);
     const [method, path] = answerText.split(' ');
+    console.log(`==> GettingFullOpenAPI for Method: ${method} Path: ${path}`);
     const fullOpenAPI = await getFullOpenAPI(url, path, method);
+    console.log(`==> end of  getOpenApiSpec: ${fullOpenAPI.substring(0, 100)}...`);
     return fullOpenAPI;
 }

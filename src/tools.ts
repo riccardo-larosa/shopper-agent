@@ -8,84 +8,84 @@ import { getOpenApiSpec } from "lib/openapis";
 
 
 
-export const getApiSpecTool = tool(
-  async ({ input }) => {
-    console.log(`getApiSpecTool: ${input}`);
-    // TODO: Implement the product search
+// export const getApiSpecTool = tool(
+//   async ({ input }) => {
+//     console.log(`getApiSpecTool: ${input}`);
+//     // TODO: Implement the product search
 
-    // I Can't use the filter with regex in vectorSearch (MongoDB limitation)
-    // const filter = {
-    //   "source": { "$regex": "docs/api/catalog" }
-    // };
+//     // I Can't use the filter with regex in vectorSearch (MongoDB limitation)
+//     // const filter = {
+//     //   "source": { "$regex": "docs/api/catalog" }
+//     // };
 
-    // take the query and use findTechnicalContent to find the spec
-    const apiSpec = await findTechnicalContent(input);
+//     // take the query and use findTechnicalContent to find the spec
+//     const apiSpec = await findTechnicalContent(input);
 
-    // console.log(`apiSpec: ${JSON.stringify(apiSpec)}`);
+//     // console.log(`apiSpec: ${JSON.stringify(apiSpec)}`);
 
-    const llm = new ChatOpenAI({
-      model: "gpt-4o-mini",
-      temperature: 0,
-    });
+//     const llm = new ChatOpenAI({
+//       model: "gpt-4o-mini",
+//       temperature: 0,
+//     });
 
-    const systemMessage = {
-      role: "system",
-      content: `
-        Given a query string in the form of an action, returns the current api spec that better matches the action.
-        For instance if the text is "list all products", the API spec for listing all the products will be returned.
-        The API spec will look something like this:
-        Docs for GET /catalog/products
-        description: Retrieves the list of products from the catalog. Only the products in a live status are retrieved.
+//     const systemMessage = {
+//       role: "system",
+//       content: `
+//         Given a query string in the form of an action, returns the current api spec that better matches the action.
+//         For instance if the text is "list all products", the API spec for listing all the products will be returned.
+//         The API spec will look something like this:
+//         Docs for GET /catalog/products
+//         description: Retrieves the list of products from the catalog. Only the products in a live status are retrieved.
         
-        parameters:
-        - filter: string
+//         parameters:
+//         - filter: string
 
-        responses:
-        '200':
-          description: The products of a catalog.
-          content:
-            application/json:
+//         responses:
+//         '200':
+//           description: The products of a catalog.
+//           content:
+//             application/json:
 
-      `.trim()
-    };
+//       `.trim()
+//     };
 
-    systemMessage.content += `
-      Here is the query: ${input}
-    `;
+//     systemMessage.content += `
+//       Here is the query: ${input}
+//     `;
 
-    systemMessage.content += `
-      Here are the API specs available: ${JSON.stringify(apiSpec)}
-    `;
+//     systemMessage.content += `
+//       Here are the API specs available: ${JSON.stringify(apiSpec)}
+//     `;
 
-    const result = await llm.invoke([systemMessage]);
-    console.log(`result: ${result}`);
-    return result;
+//     const result = await llm.invoke([systemMessage]);
+//     console.log(`getApiSpecTool result: ${result}`);
+//     return result;
 
-    // it would be good to return a structured output from the findTechnicalContent
-    // console.log(result);
-    // then use the spec to search for the product executing a get request
-    // const products = await execGetRequest(results.spec, token);
-    // return the product id and the price
-    // return JSON.stringify({ productId: "123", price: 100 });
-  },
-  {
-    name: "getApiSpecTool",
-    description: "Search for the right API spec that matches the query",
-    schema: z.object({
-      input: z.string(),
-    })
-  }
-);
+//     // it would be good to return a structured output from the findTechnicalContent
+//     // console.log(result);
+//     // then use the spec to search for the product executing a get request
+//     // const products = await execGetRequest(results.spec, token);
+//     // return the product id and the price
+//     // return JSON.stringify({ productId: "123", price: 100 });
+//   },
+//   {
+//     name: "getApiSpecTool",
+//     description: "Search for the right API spec that matches the query",
+//     schema: z.object({
+//       input: z.string(),
+//     })
+//   }
+// );
 
 export const execGetRequestTool = tool(
-  async ({ endpoint, params }) => {
-    console.log(`execGetRequestTool: ${endpoint}`, params);
+  async ({ endpoint }) => {
+    console.log(`execGetRequestTool: ${endpoint}`);
     const { access_token: token } = await execPostRequest("/oauth/access_token", "",
       {
         "grant_type": "implicit",
         "client_id": process.env.EP_CLIENT_ID,
       });
-    const results = await execGetRequest(endpoint, token, params);
+    const results = await execGetRequest(endpoint, token);
     return JSON.stringify(results);
   },
   {
@@ -93,7 +93,7 @@ export const execGetRequestTool = tool(
     description: "Execute a GET request to the API",
     schema: z.object({
       endpoint: z.string().describe("The API endpoint to call"),
-      params: z.record(z.any()).optional().describe("Optional query parameters")
+      // params: z.record(z.any()).optional().describe("Optional querystring parameters")
     })
   }
 );
@@ -120,9 +120,12 @@ export const execPostRequestTool = tool(
 );
 
 export const getOpenApiSpecTool = tool(
-  async ({ query, url }) => {
+  async ({ query }) => {
+    
+    const  url = "https://elasticpath.dev/assets/openapispecs/catalog/catalog_view.yaml";
     console.log(`getOpenApiSpecTool: ${url}`);
     const spec = await getOpenApiSpec(query, url);
+    console.log(`spec: ${JSON.stringify(spec).substring(0, 100)}...`);
     return JSON.stringify(spec);
   },
   {
@@ -130,15 +133,32 @@ export const getOpenApiSpecTool = tool(
     description: "Get the OpenAPI spec for the API",
     schema: z.object({
       query: z.string().describe("The query to find the right API spec"),
-      url: z.string().describe("The URL of the OpenAPI spec")
+      // url: z.string().describe("The URL of the OpenAPI spec")
     })
   }
 );
 
+export const webSearchTool = tool(
+  async ({ query }) => {
+    console.log(`web_search: ${query}`);
+    const webSearchTool = new TavilySearchResults({
+      maxResults: 2,
+    });
+    const results = await webSearchTool.invoke(query);
+    return JSON.stringify(results);
+  },
+  {
+    name: "web_search",
+    description: "Search the web for the query",
+    schema: z.object({
+      query: z.string().describe("The query to search the web for")
+    })
+  }
+);
 
-export const webSearchTool = new TavilySearchResults({
-  maxResults: 2,
-});
+// export const webSearchTool = new TavilySearchResults({
+//   maxResults: 2,
+// });
 
 
-export const ALL_TOOLS_LIST = [webSearchTool, execGetRequestTool, execPostRequestTool, getOpenApiSpecTool];
+export const ALL_TOOLS_LIST = [ execGetRequestTool, execPostRequestTool, getOpenApiSpecTool, webSearchTool];
