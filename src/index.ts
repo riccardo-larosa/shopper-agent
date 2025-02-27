@@ -32,12 +32,8 @@ const callModel = async (state: typeof MessagesAnnotation.State) => {
   const systemMessage = {
     role: "system",
     content: `
-      You're an expert shopper assistant that is leveraging the power of Elastic Path API to complete the task.
-      Before you start, you need to get the right OpenAPI spec for the task by using getOpenApiSpecTool tool.
-      Once you understand the API, take user input and execute a GET or POST request to complete the task using the right tool.
-      
-      You don't have to show the intermediate steps, like the output of the getOpenApiSpecTool, just the final result.
-      You can make multiple API calls to complete the task.
+      You're an expert shopper assistant that is leveraging the power of Elastic Path to complete the task.
+      To complete the task use the right tool.
       
     `.trim()
   };
