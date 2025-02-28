@@ -16,10 +16,12 @@
     "@langchain/mongodb": "^0.1.0",
     "@langchain/openai": "^0.4.4",
     "mongodb": "^6.13.1",
+    "uuid": "^11.1.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.8",
+    "@types/uuid": "^10.0.0",
     "dotenv": "^16.4.7",
     "prettier": "^3.4.2",
     "tsx": "^4.19.2",
