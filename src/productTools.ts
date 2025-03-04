@@ -24,18 +24,27 @@ export const searchCatalogTool = tool(
     const systemMessage = {
       role: "system",
       content: `
-        Given a query string in the form of an action, like show me all shoes, show me all the categories/hierarchies/nodes,
-        and the OpenAPI spec that should be used to answer the query, build a GET request to complete the task using the right tool.
+        Given a query from a user, understand the intent in the form of an action. 
+        This tool is used to search the catalog for a product, a category/hierarchy/node, and any of its associated products. 
+        Examples 
+        * query: show me all shoes
+        * action: search for all products in the catalog that have tags equal to shoes
+        * query: show me all the categories or hierarchies or nodes
+        * action: search for all hierarchies or nodes in the catalog. Categories are a type of node.
+        * query: show me all the products for a given category
+        * action: search for all products in the catalog that are associated with a given category
+        
+        Using the Open API specs build a GET request to complete the task with the right parameters.
         This will be used later to execute the API call.
       `.trim()
     };
 
     systemMessage.content += ` Here is the query: ${query} `;
 
-    systemMessage.content += ` Here are the API specs available: ${JSON.stringify(specDetails)} `;
+    systemMessage.content += ` Here are the Open API specs available: ${JSON.stringify(specDetails)} `;
 
     const result = await llm.invoke([systemMessage]);
-    console.log(`searchCatalogTool result: ${result}`);
+    console.log(`searchCatalogTool result: ${result.content}`);
     return result;
   },
   {

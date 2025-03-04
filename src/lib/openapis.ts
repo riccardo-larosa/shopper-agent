@@ -2,6 +2,8 @@ import SwaggerParser from '@apidevtools/swagger-parser';
 import { ChatOpenAI } from "@langchain/openai";
 import { dump as yamlDump } from 'js-yaml';
 
+const AGENT_MODEL = process.env.AGENT_MODEL || "gpt-4o-mini";
+
 // Define types for better code organization
 interface OpenAPIOperation {
   description?: string;
@@ -150,7 +152,7 @@ function formatEndpointDetails(spec: OpenAPISpec, path: string, method: string):
     return `No operation found for ${method} ${path}`;
   }
   
-  const description = formatDescription(operation.description, 1000);
+  const description = formatDescription(operation.description, 4000);
   
   // Format parameters
   const parameters = operation.parameters || [];
@@ -239,33 +241,65 @@ export async function getOpenApiSpec(query: string, url: string) {
     ${endpoints}`;
     
   const userPrompt = `
-    I am looking for the Method and Path signature that better matches the query: ${query}
-    Your answer should be in the following format: Method Path . 
-    For instance return GET /catalog/products/{product_id} instead of GET /catalog/products/12323123 
-    or POST /v2/carts/{cartID}/checkout instead of POST /v2/carts/14564563/checkout 
+    Return the Method and Path signature that better matches the query: ${query}
+    Your answer should be in the following JSON format: {"method": "Method", "path": "Path"}. 
+    Nothing else.
+    For instance when query is "show me all shoes", return {"method": "GET", "path": "/catalog/products"} instead of GET /catalog/products?filter=eq(tags,shoes)
+    or {"method": "GET", "path": "/v2/catalog/products/{productID}"} instead of GET /v2/catalog/products/12323123
+    If the query is about adding products to the cart, return {"method": "POST", "path": "/v2/carts/{cartId}/items"} instead of POST /v2/carts/12312312312/items
+    If the query is about showing the content of the cart, return {"method": "GET", "path": "/v2/carts/{cartId}/items"} instead of GET /v2/carts/12312312312/items
     `;
 
   const llm = new ChatOpenAI({
-    model: "gpt-4o",
+    model: AGENT_MODEL,
     temperature: 0,
   });
     
   const response = await llm.invoke([systemPrompt, userPrompt]);
-  const answer = response.content;
+  console.log(`==> Answer: ${response.content}`);
   
-  if (!answer) {
+  if (!response.content) {
     throw new Error("No answer from GPT");
   }
-  
-  const answerText = String(answer);
-  console.log(`==> Answer: ${answerText}`);
-  
-  const [method, path] = answerText.split(' ');
-  console.log(`==> GettingFullOpenAPI for Method: ${method} Path: ${path}`);
-  
-  // Use the already loaded spec directly
-  const fullOpenAPI = formatEndpointDetails(spec, path, method);
-  console.log(`==> end of getOpenApiSpec: ${fullOpenAPI.substring(0, 100)}...`);
-  
-  return fullOpenAPI;
+
+  try {
+    let content = response.content;
+    
+    // If content is a string and looks like an unquoted JSON object
+    if (typeof content === 'string' && content.trim().startsWith('{') && content.trim().endsWith('}')) {
+      // First, extract the method and path values
+      const matches = content.match(/{\s*method:\s*(\w+),\s*path:\s*([^}]+)}/);
+      if (matches) {
+        const [_, method, path] = matches;
+        // Create a properly formatted JSON string
+        content = JSON.stringify({
+          method: method.trim(),
+          path: path.trim()
+        });
+      }
+    }
+    
+    console.log(`==> Processed content: ${content}`);
+    
+    // Now parse the properly formatted JSON
+    const jsonAnswer = typeof content === 'string' ? JSON.parse(content) : content;
+    
+    console.log(`==> JSON Answer: ${JSON.stringify(jsonAnswer)}`);
+    
+    if (!jsonAnswer.method || !jsonAnswer.path) {
+      throw new Error("Invalid response format: missing method or path");
+    }
+    
+    const { method, path } = jsonAnswer;
+    console.log(`==> GettingFullOpenAPI for Method: ${method} Path: ${path}`);
+    
+    // Use the already loaded spec directly
+    const fullOpenAPI = formatEndpointDetails(spec, path, method);
+    console.log(`==> end of getOpenApiSpec: ${fullOpenAPI.substring(0, 100)}...`);
+    
+    return fullOpenAPI;
+  } catch (error) {
+    console.error('Error processing response:', error);
+    throw new Error(`Failed to parse LLM response: ${error.message}`);
+  }
 }
