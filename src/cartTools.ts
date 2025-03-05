@@ -43,7 +43,7 @@ export const cartTool = tool(
 
     systemMessage.content += ` Here is the query: ${query} `;
 
-    systemMessage.content += ` Here are the API specs available: ${JSON.stringify(specDetails)} `;
+    systemMessage.content += ` Here are the Open API specs available: ${JSON.stringify(specDetails)} `;
 
     const result = await llm.invoke([systemMessage]);
     console.log(`cartTool result: ${result.content}`);

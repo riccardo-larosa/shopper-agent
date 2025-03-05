@@ -1,6 +1,7 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
 import { ChatOpenAI } from "@langchain/openai";
 import { dump as yamlDump } from 'js-yaml';
+import { z } from 'zod';
 
 const AGENT_MODEL = process.env.AGENT_MODEL || "gpt-4o-mini";
 
@@ -255,42 +256,22 @@ export async function getOpenApiSpec(query: string, url: string) {
     temperature: 0,
   });
     
-  const response = await llm.invoke([systemPrompt, userPrompt]);
-  console.log(`==> Answer: ${response.content}`);
+  const llmWithStructuredOutput = llm.withStructuredOutput(z.object({
+    method: z.string(),
+    path: z.string(),
+    // content: z.string()
+  }));
+
+  // using the structured output, we can get the method and path directly
+  const response = await llmWithStructuredOutput.invoke([systemPrompt, userPrompt]);
+  console.log(`==> Answer: ${JSON.stringify(response)}`);
   
-  if (!response.content) {
+  if (!response) {
     throw new Error("No answer from GPT");
   }
 
   try {
-    let content = response.content;
-    
-    // If content is a string and looks like an unquoted JSON object
-    if (typeof content === 'string' && content.trim().startsWith('{') && content.trim().endsWith('}')) {
-      // First, extract the method and path values
-      const matches = content.match(/{\s*method:\s*(\w+),\s*path:\s*([^}]+)}/);
-      if (matches) {
-        const [_, method, path] = matches;
-        // Create a properly formatted JSON string
-        content = JSON.stringify({
-          method: method.trim(),
-          path: path.trim()
-        });
-      }
-    }
-    
-    console.log(`==> Processed content: ${content}`);
-    
-    // Now parse the properly formatted JSON
-    const jsonAnswer = typeof content === 'string' ? JSON.parse(content) : content;
-    
-    console.log(`==> JSON Answer: ${JSON.stringify(jsonAnswer)}`);
-    
-    if (!jsonAnswer.method || !jsonAnswer.path) {
-      throw new Error("Invalid response format: missing method or path");
-    }
-    
-    const { method, path } = jsonAnswer;
+    const { method, path } = response;
     console.log(`==> GettingFullOpenAPI for Method: ${method} Path: ${path}`);
     
     // Use the already loaded spec directly
