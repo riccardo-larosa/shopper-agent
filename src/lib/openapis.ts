@@ -146,7 +146,7 @@ function formatRequestBody(requestBody: any): string {
  * @param method The HTTP method
  * @returns A formatted string with endpoint details
  */
-function formatEndpointDetails(spec: OpenAPISpec, path: string, method: string): string {
+export function formatEndpointDetails(spec: OpenAPISpec, path: string, method: string): string {
   const operation = getOperation(spec, path, method.toLowerCase());
   
   if (!operation) {
@@ -157,20 +157,29 @@ function formatEndpointDetails(spec: OpenAPISpec, path: string, method: string):
   
   // Format parameters
   const parameters = operation.parameters || [];
-  const parameterString = parameters.map(param => `${param.name}: ${param.description}`).join(', ');
+  const parameterString = parameters.map(param => 
+    `name: ${param.name}
+    in: ${param.in}
+    required: ${param.required}
+    description: ${param.description}`).join(',\n ');
   
   // Format responses
   const responses = operation.responses || {};
   const responseString = Object.keys(responses)
     .filter(statusCode => statusCode === '200' || statusCode === '201')
     .map(statusCode => `${statusCode}: ${responses[statusCode].description}`)
-    .join(', ');
+    .join(', \n ');
   
   // Format request body using the new helper function
   const requestBody = operation.requestBody || {};
   const requestBodyString = formatRequestBody(requestBody);
   
-  return `method: ${method} path: ${path} description:${description} Parameters: ${parameterString} Responses: ${responseString} Request Body: ${requestBodyString}`;
+  return `method: ${method} 
+      path: ${path} 
+      description: ${description} 
+      Parameters: ${parameterString} 
+      Responses: ${responseString} 
+      Request Body: ${requestBodyString}`;
 }
 
 /**
@@ -180,7 +189,7 @@ function formatEndpointDetails(spec: OpenAPISpec, path: string, method: string):
  * @param method The HTTP method
  * @returns A formatted string with endpoint details
  */
-async function getFullOpenAPI(url: string, path: string, method: string) {
+export async function getFullOpenAPI(url: string, path: string, method: string) {
   console.log(`==> Getting full OpenAPI for ${url} ${path} ${method}`);
   
   const spec = await loadOpenAPISpec(url);
@@ -192,7 +201,7 @@ async function getFullOpenAPI(url: string, path: string, method: string) {
  * @param url The URL of the OpenAPI specification
  * @returns A formatted string with all endpoints and their descriptions
  */
-async function getListOfAPIEndpoints(url: string) {
+export async function getListOfAPIEndpoints(url: string) {
   console.log(`==> Getting API endpoints and descriptions for ${url}`);
   
   const spec = await loadOpenAPISpec(url);
@@ -246,7 +255,7 @@ export async function getOpenApiSpec(query: string, url: string) {
     Your answer should be in the following JSON format: {"method": "Method", "path": "Path"}. 
     Nothing else.
     For instance when query is "show me all shoes", return {"method": "GET", "path": "/catalog/products"} instead of GET /catalog/products?filter=eq(tags,shoes)
-    or {"method": "GET", "path": "/v2/catalog/products/{productID}"} instead of GET /v2/catalog/products/12323123
+    or {"method": "GET", "path": "/catalog/products/{productID}"} instead of GET /catalog/products/12323123
     If the query is about adding products to the cart, return {"method": "POST", "path": "/v2/carts/{cartId}/items"} instead of POST /v2/carts/12312312312/items
     If the query is about showing the content of the cart, return {"method": "GET", "path": "/v2/carts/{cartId}/items"} instead of GET /v2/carts/12312312312/items
     `;

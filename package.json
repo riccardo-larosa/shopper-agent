@@ -4,7 +4,8 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "start": "tsx --experimental-wasm-modules -r dotenv/config src/index.ts"
+    "start": "tsx --experimental-wasm-modules -r dotenv/config src/index.ts",
+    "test:openapi": "tsx src/test/openapi.test.ts"
   },
   "author": "Riccardo La Rosa",
   "license": "MIT",

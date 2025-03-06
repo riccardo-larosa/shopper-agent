@@ -14,7 +14,7 @@ const AGENT_MODEL = process.env.AGENT_MODEL || "gpt-4o-mini";
 export const cartTool = tool(
   async ({ query }) => {
 
-    console.log(` : ${query}`);
+    console.log(` query : ${query}`);
     const specDetails = await getOpenApiSpec(query, apiSpec);
     console.log(`cartTool specDetails: ${JSON.stringify(specDetails).substring(0, 100)}...`);
 

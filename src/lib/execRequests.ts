@@ -5,7 +5,7 @@ function createHeaders(token?: string) {
         'Content-Type': token ? 'application/json' : 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
     };
-    console.log(`headers: ${JSON.stringify(headers)}`);
+    console.log(`\x1b[93m headers: ${JSON.stringify(headers)}\x1b[0m`);
     return headers;
 }
 
@@ -22,7 +22,7 @@ export async function execGetRequest(
     try {
         const baseurl = getBaseurl();
 
-        console.log(`==> GET ${baseurl + endpoint} `);
+        console.log(`\x1b[94m ==> GET ${baseurl + endpoint}\x1b[0m `);
         const response = await fetch(baseurl + endpoint, {
             method: 'GET',
             headers: createHeaders(token),
@@ -49,7 +49,7 @@ export async function execPostRequest(
 ): Promise<any> {
     try {
         const baseurl = getBaseurl();
-        console.log(`calling execPostRequest: ${baseurl + endpoint}`);
+        console.log(`\x1b[94m ==> POST ${baseurl + endpoint}\x1b[0m `);
         console.log(`body: ${JSON.stringify(body)}`);
         const response = await fetch(baseurl + endpoint, {
             method: 'POST',
