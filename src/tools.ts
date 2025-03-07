@@ -5,6 +5,8 @@ import { z } from "zod";
 import { execGetRequestTool, execPostRequestTool } from "./utils/apiTools";
 import { searchCatalogTool } from "./shopper/productTools";
 import { cartTool } from "./shopper/cartTools";
+import { fileTool } from "./merchandiser/fileTools";
+import { managePIMTool } from "./merchandiser/pimTools";
 
 // export const getOpenApiSpecTool = tool(
 //   async ({ query }) => {
@@ -46,4 +48,4 @@ export const webSearchTool = tool(
 
 
 export const SHOPPER_TOOLS_LIST = [ webSearchTool, searchCatalogTool, cartTool, execGetRequestTool, execPostRequestTool];
-export const MERCHANDISER_TOOLS_LIST = [ webSearchTool, execGetRequestTool, execPostRequestTool];
+export const MERCHANDISER_TOOLS_LIST = [ webSearchTool, execGetRequestTool, execPostRequestTool, managePIMTool, fileTool];

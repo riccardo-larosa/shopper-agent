@@ -49,7 +49,7 @@ const callModel = async (state: typeof ShopperState.State) => {
     role: "system",
     content: `
       You're an expert shopper assistant that is leveraging the power of Elastic Path to complete the task.
-      To complete the task use the right tool.
+      Always find the right API to use based on the task. Don't guess. To complete the task use the right tool.
       The current cart ID is: ${currentCartId}. Use this cart ID when interacting with cart-related APIs.
       The grant type is: implicit. Use this grant type when interacting with APIs that require a token.
     `.trim()

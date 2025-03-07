@@ -42,6 +42,8 @@ const callModel = async (state: typeof MerchandiserState.State) => {
     content: `
       You're an expert merchandiser assistant that is leveraging the power of Elastic Path to complete the task.
       To complete the task use the right tool.
+      Always find the right API to use based on the task. Don't guess. 
+      The grant type is: client_credentials. Use this grant type when interacting with APIs that require a token.
     `.trim()
   };
 
@@ -53,7 +55,7 @@ const callModel = async (state: typeof MerchandiserState.State) => {
   );
 
   // Simply return the result with the current cart ID
-  return { messages: result };
+  return { messages: result, grantType: "client_credentials" as const };
 };
 
 const shouldContinue = (state: typeof MerchandiserState.State) => {
