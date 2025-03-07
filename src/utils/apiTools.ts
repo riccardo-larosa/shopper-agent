@@ -5,12 +5,13 @@ import { tool } from "@langchain/core/tools";
 /**
  * Execute a GET request to the API
  * @param endpoint - The API endpoint to call
+ * @param grantType - The type of token to get. Must be either 'implicit' or 'client_credentials'
  * @returns The results of the GET request
  */
 export const execGetRequestTool = tool(
-  async ({ endpoint }) => {
-    console.log(`execGetRequestTool: ${endpoint}`);
-    const { access_token: token } = await getToken("implicit");
+  async ({ endpoint, grantType }) => {
+    console.log(`execGetRequestTool: ${endpoint}`, grantType);
+    const { access_token: token } = await getToken(grantType);
     const results = await execGetRequest(endpoint, token);
     return JSON.stringify(results);
   },
@@ -19,7 +20,7 @@ export const execGetRequestTool = tool(
     description: "Execute a GET request to the API",
     schema: z.object({
       endpoint: z.string().describe("The API endpoint to call"),
-      // params: z.record(z.any()).optional().describe("Optional querystring parameters")
+      grantType: z.enum(["implicit", "client_credentials"]).describe("The type of token to get. Must be either 'implicit' or 'client_credentials'")
     })
   }
 );
@@ -28,12 +29,13 @@ export const execGetRequestTool = tool(
  * Execute a POST request to the API
  * @param endpoint - The API endpoint to call
  * @param body - The body of the POST request
+ * @param grantType - The type of token to get. Must be either 'implicit' or 'client_credentials'
  * @returns The results of the POST request
  */
 export const execPostRequestTool = tool(
-  async ({ endpoint, body }) => {
-    console.log(`execPostRequestTool: ${endpoint}`, body);
-    const { access_token: token } = await getToken("implicit");
+  async ({ endpoint, body, grantType }) => {
+    console.log(`execPostRequestTool: ${endpoint}`, body, grantType);
+    const { access_token: token } = await getToken(grantType);
     const results = await execPostRequest(endpoint, token, body);
     return JSON.stringify(results);
   },
@@ -42,7 +44,8 @@ export const execPostRequestTool = tool(
     description: "Execute a POST request to the API",
     schema: z.object({
       endpoint: z.string().describe("The API endpoint to call"),
-      body: z.record(z.any()).describe("The body of the POST request")
+      body: z.record(z.any()).describe("The body of the POST request"),
+      grantType: z.enum(["implicit", "client_credentials"]).describe("The type of token to get. Must be either 'implicit' or 'client_credentials'")
     })
   }
 );

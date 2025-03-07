@@ -23,6 +23,7 @@ const GRAPH_MODEL = process.env.GRAPH_MODEL || "gpt-4o";
 // Create a custom annotation that extends MessagesAnnotation to include cartId
 const MerchandiserState = Annotation.Root({
   ...MessagesAnnotation.spec,
+  grantType: Annotation<"client_credentials">,
   // add any additional state you need
 });
 

@@ -15,7 +15,7 @@ import {
 } from "@langchain/core/messages";
 import { ChatOpenAI } from "@langchain/openai";
 import { SHOPPER_TOOLS_LIST } from "./tools";
-import { z } from "zod";
+// import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid';
 
 // Use environment variable with fallback to "gpt-4o"
@@ -25,6 +25,7 @@ const GRAPH_MODEL = process.env.GRAPH_MODEL || "gpt-4o";
 const ShopperState = Annotation.Root({
   ...MessagesAnnotation.spec,
   cartId: Annotation<string | undefined>,
+  grantType: Annotation<"implicit">,
 });
 
 const llm = new ChatOpenAI({
@@ -50,6 +51,7 @@ const callModel = async (state: typeof ShopperState.State) => {
       You're an expert shopper assistant that is leveraging the power of Elastic Path to complete the task.
       To complete the task use the right tool.
       The current cart ID is: ${currentCartId}. Use this cart ID when interacting with cart-related APIs.
+      The grant type is: implicit. Use this grant type when interacting with APIs that require a token.
     `.trim()
   };
 
@@ -60,8 +62,12 @@ const callModel = async (state: typeof ShopperState.State) => {
     }
   );
   
-  // Simply return the result with the current cart ID
-  return { messages: result, cartId: currentCartId };
+  // Always return "implicit" as grantType to ensure it's set from the start
+  return { 
+    messages: result, 
+    cartId: currentCartId, 
+    grantType: "implicit" as const 
+  };
 };
 
 const shouldContinue = (state: typeof ShopperState.State) => {
