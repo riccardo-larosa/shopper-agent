@@ -3,7 +3,8 @@
     "dockerfile_lines": [],
     "dependencies": ["."],
     "graphs": {
-      "shopper": "./src/index.ts:graph"
+      "shopper": "./src/indexShopper.ts:graph",
+      "merchandiser": "./src/indexMerchandiser.ts:graph"
     },
     "env": ".env"
   }

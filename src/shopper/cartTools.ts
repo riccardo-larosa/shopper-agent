@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { execGetRequest, execPostRequest } from "./lib/execRequests";
+// import { execGetRequest, execPostRequest } from "./lib/execRequests";
 import { getOpenApiSpec } from "lib/openapis";
 import { ChatOpenAI } from "@langchain/openai";
 // import { ToolNode } from "@langchain/langgraph/prebuilt";

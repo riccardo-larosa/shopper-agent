@@ -1,4 +1,4 @@
-import { AgentConfig } from '../types/agent';
+import { AgentConfig } from './types/agent';
 import { MongoDBAtlasVectorSearch } from '@langchain/mongodb';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { MongoClient } from 'mongodb';

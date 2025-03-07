@@ -2,9 +2,9 @@ import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 // import { getOpenApiSpec } from "lib/openapis";
-import { execGetRequestTool, execPostRequestTool } from "./apiTools";
-import { searchCatalogTool } from "./productTools";
-import { cartTool } from "./cartTools";
+import { execGetRequestTool, execPostRequestTool } from "./utils/apiTools";
+import { searchCatalogTool } from "./shopper/productTools";
+import { cartTool } from "./shopper/cartTools";
 
 // export const getOpenApiSpecTool = tool(
 //   async ({ query }) => {
@@ -45,4 +45,5 @@ export const webSearchTool = tool(
 
 
 
-export const ALL_TOOLS_LIST = [ webSearchTool, searchCatalogTool, cartTool, execGetRequestTool, execPostRequestTool];
+export const SHOPPER_TOOLS_LIST = [ webSearchTool, searchCatalogTool, cartTool, execGetRequestTool, execPostRequestTool];
+export const MERCHANDISER_TOOLS_LIST = [ webSearchTool, execGetRequestTool, execPostRequestTool];

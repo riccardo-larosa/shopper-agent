@@ -1,4 +1,4 @@
-import { getFullOpenAPI } from '../lib/openapis.js';
+import { getFullOpenAPI, getListOfAPIEndpoints } from '../src/lib/openapis.js';
 
 const cv_url = 'https://elasticpath.dev/assets/openapispecs/catalog/catalog_view.yaml';
 const cart_url = 'https://elasticpath.dev/assets/openapispecs/carts/OpenAPISpec.yaml';
@@ -13,11 +13,20 @@ console.log('URL:', url);
 console.log('Path:', path);
 console.log('Method:', method);
 
-getFullOpenAPI(url, path, method)
+getListOfAPIEndpoints(url)
   .then(result => {
     console.log('\nResult:');
     console.log(result);
   })
   .catch(error => {
     console.error('Error:', error);
-  }); 
+  });
+
+// getFullOpenAPI(url, path, method)
+//   .then(result => {
+//     console.log('\nResult:');
+//     console.log(result);
+//   })
+//   .catch(error => {
+//     console.error('Error:', error);
+//   }); 

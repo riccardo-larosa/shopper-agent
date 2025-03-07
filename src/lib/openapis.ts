@@ -174,12 +174,13 @@ export function formatEndpointDetails(spec: OpenAPISpec, path: string, method: s
   const requestBody = operation.requestBody || {};
   const requestBodyString = formatRequestBody(requestBody);
   
-  return `method: ${method} 
-      path: ${path} 
-      description: ${description} 
-      Parameters: ${parameterString} 
-      Responses: ${responseString} 
-      Request Body: ${requestBodyString}`;
+  return `
+  method: ${method} 
+  path: ${path} 
+  description: ${description} 
+  Parameters: ${parameterString} 
+  Responses: ${responseString} 
+  Request Body: ${requestBodyString}`;
 }
 
 /**

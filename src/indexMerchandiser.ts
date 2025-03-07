@@ -14,17 +14,16 @@ import {
   type AIMessage,
 } from "@langchain/core/messages";
 import { ChatOpenAI } from "@langchain/openai";
-import { ALL_TOOLS_LIST } from "./tools";
+import { MERCHANDISER_TOOLS_LIST } from "./tools";
 import { z } from "zod";
-import { v4 as uuidv4 } from 'uuid';
 
 // Use environment variable with fallback to "gpt-4o"
 const GRAPH_MODEL = process.env.GRAPH_MODEL || "gpt-4o";
 
 // Create a custom annotation that extends MessagesAnnotation to include cartId
-const ShopperState = Annotation.Root({
+const MerchandiserState = Annotation.Root({
   ...MessagesAnnotation.spec,
-  cartId: Annotation<string | undefined>,
+  // add any additional state you need
 });
 
 const llm = new ChatOpenAI({
@@ -32,39 +31,31 @@ const llm = new ChatOpenAI({
   temperature: 0,
 });
 
-const toolNode = new ToolNode(ALL_TOOLS_LIST);
+const toolNode = new ToolNode(MERCHANDISER_TOOLS_LIST);
 
-const callModel = async (state: typeof ShopperState.State) => {
-  const { messages, cartId } = state;
-  
-  // Generate a cart ID if one doesn't exist
-  let currentCartId = cartId;
-  if (!currentCartId) {
-    currentCartId = uuidv4();
-    console.log(`Generated new cart ID: ${currentCartId}`);
-  }
+const callModel = async (state: typeof MerchandiserState.State) => {
+  const { messages } = state;
 
   const systemMessage = {
     role: "system",
     content: `
-      You're an expert shopper assistant that is leveraging the power of Elastic Path to complete the task.
+      You're an expert merchandiser assistant that is leveraging the power of Elastic Path to complete the task.
       To complete the task use the right tool.
-      The current cart ID is: ${currentCartId}. Use this cart ID when interacting with cart-related APIs.
     `.trim()
   };
 
-  const llmWithTools = llm.bindTools(ALL_TOOLS_LIST);
-  const result = await llmWithTools.invoke([systemMessage, ...messages], 
+  const llmWithTools = llm.bindTools(MERCHANDISER_TOOLS_LIST);
+  const result = await llmWithTools.invoke([systemMessage, ...messages],
     {
       recursionLimit: 5,
     }
   );
-  
+
   // Simply return the result with the current cart ID
-  return { messages: result, cartId: currentCartId };
+  return { messages: result };
 };
 
-const shouldContinue = (state: typeof ShopperState.State) => {
+const shouldContinue = (state: typeof MerchandiserState.State) => {
   const { messages } = state;
 
   const lastMessage = messages[messages.length - 1];
@@ -82,7 +73,7 @@ const shouldContinue = (state: typeof ShopperState.State) => {
 };
 
 
-const workflow = new StateGraph(ShopperState)
+const workflow = new StateGraph(MerchandiserState)
   .addNode("agent", callModel)
   .addNode("tools", toolNode)
   .addEdge(START, "agent")
