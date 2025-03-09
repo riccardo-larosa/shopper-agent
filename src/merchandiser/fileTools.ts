@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getOpenApiSpec } from "lib/openapis";
 import { ChatOpenAI } from "@langchain/openai";
 
-const apiSpec = "https://elasticpath.dev/assets/openapispecs/pim/pim.yaml";
+const apiSpec = "https://elasticpath.dev/assets/openapispecs/files/files.yaml";
 const AGENT_MODEL = process.env.AGENT_MODEL || "gpt-4o-mini";
 
 export const fileTool = tool(

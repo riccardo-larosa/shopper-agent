@@ -1,13 +1,21 @@
 import { getFullOpenAPI, getListOfAPIEndpoints } from '../src/lib/openapis.js';
 
-const cv_url = 'https://elasticpath.dev/assets/openapispecs/catalog/catalog_view.yaml';
-const cart_url = 'https://elasticpath.dev/assets/openapispecs/carts/OpenAPISpec.yaml';
-const cv_path = '/catalog/products/{product_id}';
-const cart_path = '/v2/carts/{cartID}/items';
+const urls = [
+  'https://elasticpath.dev/assets/openapispecs/catalog/catalog_view.yaml',
+  'https://elasticpath.dev/assets/openapispecs/carts/OpenAPISpec.yaml',
+  'https://elasticpath.dev/assets/openapispecs/pim/pim.yaml',
+  'https://elasticpath.dev/assets/openapispecs/files/files.yaml'
+];
+const paths = [
+  '/catalog/products/{product_id}',
+  '/v2/carts/{cartID}/items',
+  '/pcm/products/{product_id}',
+  '/v2/files'
+];
 const method = 'post';
 
-let url = cart_url;
-let path = cart_path;
+let url = urls[2];
+let path = paths[2];
 console.log('Testing getFullOpenAPI function...');
 console.log('URL:', url);
 console.log('Path:', path);

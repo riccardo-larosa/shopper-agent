@@ -37,8 +37,9 @@ Start the agent with:
  npx @langchain/langgraph-cli dev  
 ```
 for more information see [LangGraph](https://langchain-ai.github.io/langgraph/cloud/reference/cli)
-## Usage
 
+## Usage
+It runs as an agent in Langraph Cloud
 
 ## Tools Available
 
@@ -47,6 +48,11 @@ The agent comes with four main tools:
 - Add to Cart: Add items to shopping cart
 - Pay Cart: Process payment for cart items
 - Web Search: Search the web using Tavily API
+
+## Test modules
+```bash
+ npm run test:openapi
+```
 
 ## API Reference
 
