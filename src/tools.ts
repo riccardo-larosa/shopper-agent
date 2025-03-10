@@ -2,7 +2,7 @@ import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 // import { getOpenApiSpec } from "lib/openapis";
-import { execGetRequestTool, execPostRequestTool } from "./utils/apiTools";
+import { execGetRequestTool, execPostRequestTool, execPutRequestTool } from "./utils/apiTools";
 import { searchCatalogTool } from "./shopper/productTools";
 import { cartTool } from "./shopper/cartTools";
 import { fileTool } from "./merchandiser/fileTools";
@@ -48,4 +48,4 @@ export const webSearchTool = tool(
 
 
 export const SHOPPER_TOOLS_LIST = [ webSearchTool, searchCatalogTool, cartTool, execGetRequestTool, execPostRequestTool];
-export const MERCHANDISER_TOOLS_LIST = [ webSearchTool, execGetRequestTool, execPostRequestTool, managePIMTool, fileTool];
+export const MERCHANDISER_TOOLS_LIST = [ managePIMTool, fileTool, execGetRequestTool, execPostRequestTool, execPutRequestTool];

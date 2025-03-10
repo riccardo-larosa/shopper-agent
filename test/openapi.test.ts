@@ -14,8 +14,8 @@ const paths = [
 ];
 const method = 'post';
 
-let url = urls[2];
-let path = paths[2];
+let url = urls[3];
+let path = paths[3];
 console.log('Testing getFullOpenAPI function...');
 console.log('URL:', url);
 console.log('Path:', path);

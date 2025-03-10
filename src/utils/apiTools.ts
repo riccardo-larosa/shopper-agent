@@ -1,4 +1,4 @@
-import { execPostRequest, execGetRequest } from "lib/execRequests";
+import { execPostRequest, execGetRequest, execPutRequest } from "lib/execRequests";
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 
@@ -45,6 +45,31 @@ export const execPostRequestTool = tool(
     schema: z.object({
       endpoint: z.string().describe("The API endpoint to call"),
       body: z.record(z.any()).describe("The body of the POST request"),
+      grantType: z.enum(["implicit", "client_credentials"]).describe("The type of token to get. Must be either 'implicit' or 'client_credentials'")
+    })
+  }
+);
+
+/**
+ * Execute a PUT request to the API
+ * @param endpoint - The API endpoint to call
+ * @param data - The data to send in the PUT request
+ * @param grantType - The type of token to get. Must be either 'implicit' or 'client_credentials'
+ * @returns The results of the PUT request
+ */
+export const execPutRequestTool = tool(
+  async ({ endpoint, data, grantType }) => {
+    console.log(`execPutRequestTool: ${endpoint}`, data, grantType);
+    const { access_token: token } = await getToken(grantType);
+    const results = await execPutRequest(endpoint, token, data);
+    return JSON.stringify(results);
+  },
+  {
+    name: "execPutRequestTool",
+    description: "Execute a PUT request to the API",
+    schema: z.object({
+      endpoint: z.string().describe("The API endpoint to call"),
+      data: z.record(z.any()).describe("The JSON data to send in the PUT request"),
       grantType: z.enum(["implicit", "client_credentials"]).describe("The type of token to get. Must be either 'implicit' or 'client_credentials'")
     })
   }

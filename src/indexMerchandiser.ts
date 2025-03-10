@@ -41,8 +41,9 @@ const callModel = async (state: typeof MerchandiserState.State) => {
     role: "system",
     content: `
       You're an expert merchandiser assistant that is leveraging the power of Elastic Path to complete the task.
-      To complete the task use the right tool.
-      Always find the right API to use based on the task. Don't guess. 
+      
+      Always find the right API to use based on the task. Don't execute a query without looking up the right API.
+      You can use the tools to get the data you need.
       The grant type is: client_credentials. Use this grant type when interacting with APIs that require a token.
     `.trim()
   };
