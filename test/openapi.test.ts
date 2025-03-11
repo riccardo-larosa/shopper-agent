@@ -33,43 +33,45 @@ async function runTest() {
   process.exit(0);
 }
 
-runTest();
+// runTest();
 
-// const urls = [
-//   'https://elasticpath.dev/assets/openapispecs/catalog/catalog_view.yaml',
-//   'https://elasticpath.dev/assets/openapispecs/carts/OpenAPISpec.yaml',
-//   'https://elasticpath.dev/assets/openapispecs/pim/pim.yaml',
-//   'https://elasticpath.dev/assets/openapispecs/files/files.yaml'
-// ];
-// const paths = [
-//   '/catalog/products/{product_id}',
-//   '/v2/carts/{cartID}/items',
-//   '/pcm/products/{product_id}',
-//   '/v2/files'
-// ];
-// const method = 'post';
+const urls = [
+  'https://elasticpath.dev/assets/openapispecs/catalog/catalog_view.yaml',
+  'https://elasticpath.dev/assets/openapispecs/carts/OpenAPISpec.yaml',
+  'https://elasticpath.dev/assets/openapispecs/pim/pim.yaml',
+  'https://elasticpath.dev/assets/openapispecs/files/files.yaml',
+  'https://elasticpath.dev/assets/openapispecs/addresses/AccountAddresses.yaml'
+];
+const paths = [
+  '/catalog/products/{product_id}',
+  '/v2/carts/{cartID}/checkout',
+  '/pcm/products/{product_id}',
+  '/v2/files',
+  '/v2/accounts/{accountID}/addresses'
+];
+const method = 'post';
 
-// let url = urls[3];
-// let path = paths[3];
-// console.log('Testing getFullOpenAPI function...');
-// console.log('URL:', url);
-// console.log('Path:', path);
-// console.log('Method:', method);
+let url = urls[1];
+let path = paths[1];
+console.log('Testing getFullOpenAPI function...');
+console.log('URL:', url);
+console.log('Path:', path);
+console.log('Method:', method);
 
-// getListOfAPIEndpoints(url)
-//   .then(result => {
-//     console.log('\nResult:');
-//     console.log(result);
-//   })
-//   .catch(error => {
-//     console.error('Error:', error);
-//   });
+getListOfAPIEndpoints(url)
+  .then(result => {
+    console.log('\nResult:');
+    console.log(result);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+  });
 
-// getFullOpenAPI(url, path, method)
-//   .then(result => {
-//     console.log('\nResult:');
-//     console.log(result);
-//   })
-//   .catch(error => {
-//     console.error('Error:', error);
-//   }); 
+getFullOpenAPI(url, path, method)
+  .then(result => {
+    console.log('\nResult:');
+    console.log(result);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+  }); 

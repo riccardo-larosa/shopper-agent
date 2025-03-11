@@ -32,6 +32,41 @@ const specCache: Record<string, {
 // Cache expiration time (30 minutes)
 const CACHE_EXPIRATION_MS = 30 * 60 * 1000;
 
+interface OpenAPISchemaProperty extends OpenAPISchema {
+  type?: string;
+  $ref?: string;
+  description?: string;
+  example?: any;
+  default?: any;
+  properties?: Record<string, OpenAPISchemaProperty>;
+}
+
+interface OpenAPISchema {
+  type?: string;
+  required?: string[];
+  properties?: Record<string, OpenAPISchemaProperty>;
+  oneOf?: Array<{ $ref: string }>;
+}
+
+interface OpenAPIExample {
+  summary?: string;
+  value?: any;
+  description?: string;
+}
+
+interface OpenAPIContent {
+  schema?: OpenAPISchema;
+  examples?: Record<string, OpenAPIExample>;
+}
+
+interface OpenAPIRequestBody {
+  description?: string;
+  content?: {
+    'application/json'?: OpenAPIContent;
+  };
+  required?: boolean;
+}
+
 /**
  * Loads and parses an OpenAPI specification from a URL with caching
  * Always dereferences the spec (resolves $refs)
@@ -99,39 +134,62 @@ function formatDescription(description: string = 'No description', maxLength?: n
  * @param requestBody The request body object from the OpenAPI spec
  * @returns A formatted string with request body details
  */
-function formatRequestBody(requestBody: any): string {
+function formatRequestBody(requestBody: OpenAPIRequestBody): string {
   if (!requestBody) {
     return 'No request body';
   }
 
-  let result = requestBody.description ? `Description: ${requestBody.description}` : 'No description';
+  let result = requestBody.description || '';
   
   // Extract content if it exists
   if (requestBody.content && requestBody.content['application/json']) {
     const jsonContent = requestBody.content['application/json'];
     
-    // Extract schema information
-    
-    
-    // Extract examples
+    // Extract examples if they exist
     if (jsonContent.examples) {
-      result += '\n\nExamples:';
+      result += '\nExamples:\n';
       
-      for (const exampleKey in jsonContent.examples) {
-        const example = jsonContent.examples[exampleKey];
-        result += `\n\n${exampleKey}:`;
-        
+      for (const [exampleKey, example] of Object.entries(jsonContent.examples)) {
         if (example.summary) {
-          result += `\nSummary: ${example.summary}`;
+          result += `\n${example.summary}:\n`;
+          if (example.value) {
+            const jsonExample = JSON.stringify(example.value, null, 2);
+            result += `${jsonExample}\n`;
+          }
+        }
+      }
+    }
+    // If no examples but has schema
+    else if (jsonContent.schema) {
+      const schema = jsonContent.schema;
+      
+      // Handle oneOf schemas
+      if (schema.oneOf) {
+        result += '\nPossible Schema Types:\n';
+        schema.oneOf.forEach(schemaRef => {
+          if (schemaRef.$ref) {
+            result += `- ${schemaRef.$ref}\n`;
+          }
+        });
+      }
+      // Handle regular schema
+      else if (schema.properties) {
+        const exampleObj: Record<string, any> = {};
+        
+        for (const [propName, propSchema] of Object.entries(schema.properties)) {
+          if (propSchema.properties) {
+            const nestedObj: Record<string, any> = {};
+            for (const [nestedPropName, nestedPropSchema] of Object.entries(propSchema.properties)) {
+              nestedObj[nestedPropName] = nestedPropSchema.example || nestedPropSchema.default || '';
+            }
+            exampleObj[propName] = nestedObj;
+          } else {
+            exampleObj[propName] = propSchema.example || propSchema.default || '';
+          }
         }
         
-        if (example.value) {
-          // Format example value as YAML using js-yaml
-          const yamlValue = yamlDump(example.value, { indent: 2 });
-          // Truncate if too long
-          const truncatedYaml = yamlValue.length > 1000 ? yamlValue.substring(0, 1000) + '...' : yamlValue;
-          result += `\nValue:\n${truncatedYaml}`;
-        }
+        const jsonExample = JSON.stringify(exampleObj, null, 2);
+        result += `\nExample Value:\n${jsonExample}`;
       }
     }
   }
@@ -158,7 +216,8 @@ export function formatEndpointDetails(spec: OpenAPISpec, path: string, method: s
   // Format parameters
   const parameters = operation.parameters || [];
   const parameterString = parameters.map(param => 
-    `name: ${param.name}
+    `
+    name: ${param.name}
     in: ${param.in}
     required: ${param.required}
     description: ${param.description}`).join(',\n ');
@@ -179,8 +238,8 @@ export function formatEndpointDetails(spec: OpenAPISpec, path: string, method: s
   path: ${path} 
   description: ${description} 
   Parameters: ${parameterString} 
-  Responses: ${responseString} 
-  Request Body: ${requestBodyString}`;
+  Request Body: ${requestBodyString}
+  Responses: ${responseString} `;
 }
 
 /**
