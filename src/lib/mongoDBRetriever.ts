@@ -5,15 +5,16 @@ import { MongoClient } from 'mongodb';
 
 export class MongoDBRetriever {
     private vectorStore!: MongoDBAtlasVectorSearch;
+    private client!: MongoClient;
 
     async init(config: AgentConfig) {
         const embeddings = new OpenAIEmbeddings({
             openAIApiKey: config.openaiApiKey,
             modelName: "text-embedding-3-small",
         });
-        const client = new MongoClient(config.mongodbUri);
-        await client.connect();
-        const collection = client.db(config.dbName).collection(config.collectionName);
+        this.client = new MongoClient(config.mongodbUri);
+        await this.client.connect();
+        const collection = this.client.db(config.dbName).collection(config.collectionName);
         this.vectorStore = new MongoDBAtlasVectorSearch(
             embeddings,
             {
@@ -25,6 +26,12 @@ export class MongoDBRetriever {
 
     async similaritySearch(query: string, topK: number = 5, filter?: any) {
         return await this.vectorStore.similaritySearch(query, topK, filter);
+    }
+
+    async cleanup() {
+        if (this.client) {
+            await this.client.close();
+        }
     }
 }
 
@@ -64,7 +71,7 @@ export async function findTechnicalContent(question: string, filter?: any) {
         collectionName: process.env.MONGODB_API_COLLECTION_NAME!,
         openaiApiKey: process.env.OPENAI_API_KEY!,
     };
-    
+    console.log(`config: ${JSON.stringify(config)}`);
     const apiAgent = new MongoDBRetriever();
     try {
         await apiAgent.init(config);
@@ -74,6 +81,8 @@ export async function findTechnicalContent(question: string, filter?: any) {
         return results;
     } catch (error) {
         console.error('Error during MongoDB retrieval:', error);
-        throw error; // or handle the error as needed
+        throw error;
+    } finally {
+        await apiAgent.cleanup();
     }
 }
