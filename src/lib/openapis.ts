@@ -34,7 +34,6 @@ const CACHE_EXPIRATION_MS = 30 * 60 * 1000;
 
 interface OpenAPISchemaProperty extends OpenAPISchema {
   type?: string;
-  $ref?: string;
   description?: string;
   example?: any;
   default?: any;
@@ -45,7 +44,8 @@ interface OpenAPISchema {
   type?: string;
   required?: string[];
   properties?: Record<string, OpenAPISchemaProperty>;
-  oneOf?: Array<{ $ref: string }>;
+  oneOf?: OpenAPISchema[];
+  allOf?: OpenAPISchema[];
 }
 
 interface OpenAPIExample {
@@ -145,17 +145,19 @@ function formatRequestBody(requestBody: OpenAPIRequestBody): string {
   if (requestBody.content && requestBody.content['application/json']) {
     const jsonContent = requestBody.content['application/json'];
     
-    // Extract examples if they exist
+    // Extract examples if they exist (top level examples)
     if (jsonContent.examples) {
       result += '\nExamples:\n';
       
       for (const [exampleKey, example] of Object.entries(jsonContent.examples)) {
         if (example.summary) {
           result += `\n${example.summary}:\n`;
-          if (example.value) {
-            const jsonExample = JSON.stringify(example.value, null, 2);
-            result += `${jsonExample}\n`;
-          }
+        } else {
+          result += `\n${exampleKey}:\n`;
+        }
+        if (example.value) {
+          const jsonExample = JSON.stringify(example.value, null, 2);
+          result += `${jsonExample}\n`;
         }
       }
     }
@@ -163,38 +165,57 @@ function formatRequestBody(requestBody: OpenAPIRequestBody): string {
     else if (jsonContent.schema) {
       const schema = jsonContent.schema;
       
-      // Handle oneOf schemas
+      // Handle oneOf schemas - these are now dereferenced
       if (schema.oneOf) {
-        result += '\nPossible Schema Types:\n';
-        schema.oneOf.forEach(schemaRef => {
-          if (schemaRef.$ref) {
-            result += `- ${schemaRef.$ref}\n`;
+        result += '\nPossible Schemas:\n';
+        schema.oneOf.forEach(subSchema => {
+          if (subSchema.properties) {
+            const example = createExampleFromSchema(subSchema);
+            const jsonExample = JSON.stringify(example, null, 2);
+            result += `\nExample:\n${jsonExample}\n`;
           }
         });
       }
+      // Handle allOf schemas - these are now dereferenced
+      else if (schema.allOf) {
+        result += '\nCombined Schema Example:\n';
+        // Merge all schemas in allOf
+        const mergedExample = schema.allOf.reduce((acc, subSchema) => {
+          if (subSchema.properties) {
+            const example = createExampleFromSchema(subSchema);
+            return { ...acc, ...example };
+          }
+          return acc;
+        }, {});
+        const jsonExample = JSON.stringify(mergedExample, null, 2);
+        result += `${jsonExample}\n`;
+      }
       // Handle regular schema
       else if (schema.properties) {
-        const exampleObj: Record<string, any> = {};
-        
-        for (const [propName, propSchema] of Object.entries(schema.properties)) {
-          if (propSchema.properties) {
-            const nestedObj: Record<string, any> = {};
-            for (const [nestedPropName, nestedPropSchema] of Object.entries(propSchema.properties)) {
-              nestedObj[nestedPropName] = nestedPropSchema.example || nestedPropSchema.default || '';
-            }
-            exampleObj[propName] = nestedObj;
-          } else {
-            exampleObj[propName] = propSchema.example || propSchema.default || '';
-          }
-        }
-        
-        const jsonExample = JSON.stringify(exampleObj, null, 2);
-        result += `\nExample Value:\n${jsonExample}`;
+        const example = createExampleFromSchema(schema);
+        const jsonExample = JSON.stringify(example, null, 2);
+        result += `\nExample:\n${jsonExample}`;
       }
     }
   }
   
   return result;
+}
+
+function createExampleFromSchema(schema: OpenAPISchema): Record<string, any> {
+  const example: Record<string, any> = {};
+  
+  if (schema.properties) {
+    for (const [propName, propSchema] of Object.entries(schema.properties)) {
+      if (propSchema.properties) {
+        example[propName] = createExampleFromSchema(propSchema);
+      } else {
+        example[propName] = propSchema.example || propSchema.default || '';
+      }
+    }
+  }
+  
+  return example;
 }
 
 /**

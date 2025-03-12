@@ -44,7 +44,7 @@ const urls = [
 ];
 const paths = [
   '/catalog/products/{product_id}',
-  '/v2/carts/{cartID}/checkout',
+  '/v2/orders/anonymize',
   '/pcm/products/{product_id}',
   '/v2/files',
   '/v2/accounts/{accountID}/addresses'
