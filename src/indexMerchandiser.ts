@@ -56,7 +56,10 @@ const callModel = async (state: typeof MerchandiserState.State) => {
   );
 
   // Simply return the result with the current cart ID
-  return { messages: result, grantType: "client_credentials" as const };
+  return { 
+    messages: result, 
+    grantType: "client_credentials" as const 
+  };
 };
 
 const shouldContinue = (state: typeof MerchandiserState.State) => {

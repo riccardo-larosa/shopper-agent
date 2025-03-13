@@ -5,32 +5,6 @@ import { ChatOpenAI } from "@langchain/openai";
 
 const AGENT_MODEL = process.env.AGENT_MODEL || "gpt-4o-mini";
 
-export const cartAPITool = tool(
-  async ({ query }: { query: string }) => {
-    return await APITool(query, "carts");
-  },
-  {
-    name: "cartAPITool",
-    description: "Information about the cart API, add a product to the cart, or update a product from the cart, or checkout the cart ",
-    schema: z.object({
-      query: z.string().describe("The user query to match the API specification"),
-    })
-  }
-);
-
-export const catalogAPITool = tool(
-  async ({ query }: { query: string }) => {
-    return await APITool(query, "catalog");
-  },
-  {
-    name: "catalogAPITool",
-    description: "Information about the catalog API, add a product to the catalog, or update a product from the catalog, or checkout the catalog ",
-    schema: z.object({
-      query: z.string().describe("The user query to match the API specification"),
-    })
-  }
-);
-
 export async function APITool(query: string, apiName: string) {
 
   const specResults = await findAPISpecification(query, apiName);
@@ -57,3 +31,82 @@ export async function APITool(query: string, apiName: string) {
   console.log(`APITool result: ${result.content}`);
   return result.content;
 };
+
+
+export const cartAPITool = tool(
+  async ({ query }: { query: string }) => {
+    return await APITool(query, "carts");
+  },
+  {
+    name: "cartAPITool",
+    description: "Information about the cart API, add a product to the cart, or update a product from the cart, or checkout the cart ",
+    schema: z.object({
+      query: z.string().describe("The user query to match the API specification"),
+    })
+  }
+);
+
+export const catalogAPITool = tool(
+  async ({ query }: { query: string }) => {
+    return await APITool(query, "catalog");
+  },
+  {
+    name: "catalogAPITool",
+    description: "Information about the catalog API, add a product to the catalog, or update a product from the catalog, or checkout the catalog ",
+    schema: z.object({
+      query: z.string().describe("The user query to match the API specification"),
+    })
+  }
+);
+
+export const catalogAdminAPITool = tool(
+  async ({ query }: { query: string }) => {
+    return await APITool(query, "catalog-admin");
+  },
+  {
+    name: "catalogAdminAPITool",
+    description: "Information about the catalog admin API, create a catalog, publish a catalog, retrieves different catalogs, manage catalog attributes, ",
+    schema: z.object({
+      query: z.string().describe("The user query to match the API specification"),
+    })
+  }
+);
+
+export const pimAPITool = tool(
+  async ({ query }: { query: string }) => {
+    return await APITool(query, "pim");
+  },
+  {
+    name: "pimAPITool",
+    description: "Manage the products, variations, bundles, hierarchies, nodes in Product Experience Manager (PXM) ",
+    schema: z.object({
+      query: z.string().describe("The user query to match the API specification"),
+    })
+  }
+);
+
+export const fileAPITool = tool(
+  async ({ query }: { query: string }) => {
+    return await APITool(query, "files");
+  },
+  {
+    name: "fileAPITool",
+    description: "Information about the file API, upload a file, download a file, delete a file, ",
+    schema: z.object({
+      query: z.string().describe("The user query to match the API specification"),
+    })
+  }
+);
+
+export const pricebookAPITool = tool(
+  async ({ query }: { query: string }) => {
+    return await APITool(query, "pricebooks");
+  },
+  {
+    name: "pricebookAPITool",
+    description: "Information about the pricebook API, create a pricebook, update a pricebook, retrieve a pricebook, delete a pricebook. Pricebooks contain prices for the products in your catalog.  ",
+    schema: z.object({
+      query: z.string().describe("The user query to match the API specification"),
+    })
+  }
+);
