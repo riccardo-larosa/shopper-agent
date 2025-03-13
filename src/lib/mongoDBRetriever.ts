@@ -1,7 +1,7 @@
 import { AgentConfig } from './types/agent';
 import { MongoDBAtlasVectorSearch } from '@langchain/mongodb';
 import { OpenAIEmbeddings } from '@langchain/openai';
-import { MongoClient } from 'mongodb';
+import { Filter, MongoClient } from 'mongodb';
 
 export class MongoDBRetriever {
     private vectorStore!: MongoDBAtlasVectorSearch;
@@ -63,8 +63,8 @@ export class MongoDBRetriever {
 
 // }
 
-export async function findTechnicalContent(question: string, filter?: any) {
-    console.log(`calling findTechnicalContent with question: ${question}`);
+export async function findAPISpecification(question: string, apiName?: string) {
+    console.log(`calling findAPISpecification with question: ${question} for api: ${apiName}`);
     const config = {
         mongodbUri: process.env.MONGODB_CONNECTION_URI!,
         dbName: process.env.MONGODB_DATABASE_NAME!,
@@ -73,6 +73,7 @@ export async function findTechnicalContent(question: string, filter?: any) {
     };
     console.log(`config: ${JSON.stringify(config)}`);
     const apiAgent = new MongoDBRetriever();
+    const filter: Filter<any> = { api_name: apiName };
     try {
         await apiAgent.init(config);
         const results = await apiAgent.similaritySearch(question, 5, filter);

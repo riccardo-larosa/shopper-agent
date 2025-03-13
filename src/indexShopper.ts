@@ -50,6 +50,10 @@ const callModel = async (state: typeof ShopperState.State) => {
     content: `
       You're an expert shopper assistant that is leveraging the power of Elastic Path to complete the task.
       Always find the right API to use based on the task. Don't guess. To complete the task use the right tool.
+      When using execPostRequestTool, you must always provide three parameters:
+        - endpoint: The API endpoint to call
+        - body: A properly formatted JSON object for the request body
+        - grantType: The type of token to use (use "${state.grantType}")
       The current cart ID is: ${currentCartId}. Use this cart ID when interacting with cart-related APIs.
       The grant type is: implicit. Use this grant type when interacting with APIs that require a token.
     `.trim()

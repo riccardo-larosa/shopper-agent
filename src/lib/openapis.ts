@@ -302,12 +302,13 @@ export async function getListOfAPIEndpoints(url: string) {
       const operation = pathItem[method];
       const formattedDescription = formatDescription(operation.description, 200);
       
-      console.log(`${method.toUpperCase()} ${path}`);
+      // console.log(`${method.toUpperCase()} ${path}`);
       endpoints += `${method.toUpperCase()} ${path}  ${formattedDescription}\n`;
     }
+
   }
   
-  console.log(`==> Found ${endpoints.length} endpoints`);
+  console.log(`==> Found ${endpoints.split('\n').filter(line => line.trim()).length} endpoints`);
   return endpoints;
 }
 
