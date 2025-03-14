@@ -46,7 +46,9 @@ export async function execGetRequest(
         });
 
         if (!response.ok) {
-            throw new Error(`status: ${response.status} message: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error(`\x1b[31m HTTP error! status: ${response.status}, message: ${errorText} \x1b[0m`);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
 
         return await response.json();
@@ -85,9 +87,9 @@ export async function execPostRequest(
         });
 
         if (!response.ok) {
-            // const errorText = await response.text();
-            // console.error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-            throw new Error(`HTTP error! status: ${response.status}  message: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error(`\x1b[31m HTTP error! status: ${response.status}, message: ${errorText} \x1b[0m`);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
 
         return await response.json();
@@ -124,7 +126,9 @@ export async function execPutRequest(
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}  message: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error(`\x1b[31m HTTP error! status: ${response.status}, message: ${errorText} \x1b[0m`);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
 
         return await response.json();

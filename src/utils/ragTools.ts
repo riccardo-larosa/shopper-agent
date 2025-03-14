@@ -110,3 +110,30 @@ export const pricebookAPITool = tool(
     })
   }
 );
+
+export const promotionAPITool = tool(
+  async ({ query }: { query: string }) => {
+    return await APITool(query, "promotions-builder");
+  },
+  {
+    name: "promotionAPITool",
+    description: "Information about the promotion API, create a promotion, update a promotion, retrieve a promotion, delete a promotion. Promotions are used to apply discounts to products in your catalog.  ",
+    schema: z.object({
+      query: z.string().describe("The user query to match the API specification"),
+    })
+  }
+);
+
+export const accountAPITool = tool(
+  async ({ query }: { query: string }) => {
+    return await APITool(query, "accounts");
+  },
+  {
+    name: "accountAPITool",
+    description: "Information about the account API, create an account, update an account, retrieve an account, delete an account. Accounts are used to manage your customers.  ",
+    schema: z.object({
+      query: z.string().describe("The user query to match the API specification"),
+    })
+  }
+);
+
