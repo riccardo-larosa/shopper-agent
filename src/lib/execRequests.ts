@@ -1,3 +1,8 @@
+// Add global state type declaration for TypeScript
+declare global {
+  var lastShopperState: any;
+}
+
 /**
  * Creates headers for API requests
  * @param token - Optional authentication token
@@ -25,7 +30,7 @@ function getBaseurl() {
  * Executes a GET request to the API
  * @param endpoint - The API endpoint to call
  * @param token - The authentication token
- * @returns The response data as JSON
+ * @returns The response data as JSON with success metadata
  * @throws Error if the request fails or returns a non-200 status code
  */
 export async function execGetRequest(
@@ -45,16 +50,39 @@ export async function execGetRequest(
             // ...params && { search: new URLSearchParams(params).toString() }
         });
 
+        const data = await response.json();
+        
+        // Add success/failure metadata for better feedback
+        const result = {
+            success: response.ok,
+            status: response.status,
+            statusText: response.statusText,
+            data: data
+        };
+        
+        // Update shopper state if available
+        if (global.lastShopperState) {
+            global.lastShopperState.lastActionSuccess = response.ok;
+        }
+        
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`\x1b[31m HTTP error! status: ${response.status}, message: ${errorText} \x1b[0m`);
-            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+            console.error(`\x1b[31m HTTP error! status: ${response.status}, message: ${JSON.stringify(data)} \x1b[0m`);
         }
 
-        return await response.json();
+        return result;
     } catch (error) {
         console.error('Error in execGetRequest:', error);
-        throw error;
+        
+        // Mark action as failed in state if available
+        if (global.lastShopperState) {
+            global.lastShopperState.lastActionSuccess = false;
+        }
+        
+        return {
+            success: false,
+            error: `${error}`,
+            message: "An error occurred while executing the request"
+        };
     }
 }
 
@@ -63,7 +91,7 @@ export async function execGetRequest(
  * @param endpoint - The API endpoint to call
  * @param token - The authentication token
  * @param body - The data to send in the request body
- * @returns The response data as JSON
+ * @returns The response data as JSON with success metadata
  * @throws Error if the request fails or returns a non-200 status code
  */
 export async function execPostRequest(
@@ -86,16 +114,39 @@ export async function execPostRequest(
                 : new URLSearchParams(body).toString()  // for application/x-www-form-urlencoded
         });
 
+        const data = await response.json();
+        
+        // Add success/failure metadata for better feedback
+        const result = {
+            success: response.ok,
+            status: response.status,
+            statusText: response.statusText,
+            data: data
+        };
+        
+        // Update shopper state if available
+        if (global.lastShopperState) {
+            global.lastShopperState.lastActionSuccess = response.ok;
+        }
+        
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`\x1b[31m HTTP error! status: ${response.status}, message: ${errorText} \x1b[0m`);
-            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+            console.error(`\x1b[31m HTTP error! status: ${response.status}, message: ${JSON.stringify(data)} \x1b[0m`);
         }
 
-        return await response.json();
+        return result;
     } catch (error) {
         console.error('Error in execPostRequest:', error);
-        throw error;
+        
+        // Mark action as failed in state if available
+        if (global.lastShopperState) {
+            global.lastShopperState.lastActionSuccess = false;
+        }
+        
+        return {
+            success: false,
+            error: `${error}`,
+            message: "An error occurred while executing the request"
+        };
     }
 }
 

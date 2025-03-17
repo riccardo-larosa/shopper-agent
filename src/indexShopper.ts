@@ -18,6 +18,11 @@ import { SHOPPER_TOOLS_LIST } from "./tools";
 // import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid';
 
+// Add global state type to make TypeScript happy
+declare global {
+  var lastShopperState: typeof ShopperState.State;
+}
+
 // Use environment variable with fallback to "gpt-4o"
 const GRAPH_MODEL = process.env.GRAPH_MODEL || "gpt-4o";
 
@@ -26,6 +31,8 @@ const ShopperState = Annotation.Root({
   ...MessagesAnnotation.spec,
   cartId: Annotation<string | undefined>,
   grantType: Annotation<"implicit">,
+  conversationHistory: Annotation<string[]>,
+  lastActionSuccess: Annotation<boolean | undefined>,
 });
 
 const llm = new ChatOpenAI({
@@ -36,7 +43,9 @@ const llm = new ChatOpenAI({
 const toolNode = new ToolNode(SHOPPER_TOOLS_LIST);
 
 const callModel = async (state: typeof ShopperState.State) => {
-  const { messages, cartId } = state;
+  // Store current state globally for tools to access
+  global.lastShopperState = state;
+  const { messages, cartId, conversationHistory = [], lastActionSuccess } = state;
   
   // Generate a cart ID if one doesn't exist
   let currentCartId = cartId;
@@ -45,17 +54,47 @@ const callModel = async (state: typeof ShopperState.State) => {
     console.log(`Generated new cart ID: ${currentCartId}`);
   }
 
+  // Extract past user queries and results for context
+  const recentHistory = messages
+    .slice(-6) // Consider last 3 exchanges (user + assistant)
+    .map(msg => {
+      if (msg._getType() === "human") {
+        return `User: ${msg.content}`;
+      } else if (msg._getType() === "ai") {
+        return `Assistant: ${msg.content?.toString().substring(0, 200)}...`; // Truncate long responses
+      }
+      return "";
+    })
+    .filter(Boolean);
+
+  // Add feedback about previous action success if available
+  const actionFeedback = lastActionSuccess !== undefined 
+    ? `Previous action ${lastActionSuccess ? 'succeeded' : 'failed'}. ${lastActionSuccess ? 'Continue building on it.' : 'Try a different approach.'}` 
+    : '';
+
   const systemMessage = {
     role: "system",
     content: `
       You're an expert shopper assistant that is leveraging the power of Elastic Path to complete the task.
-      Always find the right API to use based on the task. Don't guess. To complete the task use the right tool.
-      When using execPostRequestTool, you must always provide three parameters:
+      
+      PLANNING APPROACH:
+      1. First understand exactly what the user wants to accomplish
+      2. Break down complex requests into step-by-step actions
+      3. For each action, identify the most appropriate API endpoint
+      4. Validate parameters before making API calls
+      5. Track progress to ensure all parts of the request are fulfilled
+      
+      API USAGE GUIDELINES:
+      - Always find the right API to use based on the task. Don't guess. Use tools to find matching APIs.
+      - When using execPostRequestTool, always provide three parameters:
         - endpoint: The API endpoint to call
         - body: A properly formatted JSON object for the request body
         - grantType: The type of token to use (use "${state.grantType}")
-      The current cart ID is: ${currentCartId}. Use this cart ID when interacting with cart-related APIs.
-      The grant type is: implicit. Use this grant type when interacting with APIs that require a token.
+      
+      IMPORTANT INFORMATION:
+      - Cart ID: ${currentCartId} (use for cart-related APIs)
+      - Grant type: implicit (use for APIs requiring token)
+      ${actionFeedback}
     `.trim()
   };
 
@@ -66,11 +105,27 @@ const callModel = async (state: typeof ShopperState.State) => {
     }
   );
   
+  // Update conversation history with the latest exchange
+  const updatedHistory = [...conversationHistory];
+  if (messages.length > 0) {
+    const latestUserMessage = messages[messages.length - 1];
+    if (latestUserMessage._getType() === "human") {
+      updatedHistory.push(`User: ${latestUserMessage.content}`);
+      updatedHistory.push(`Assistant: ${result.content}`);
+      // Keep only last 10 exchanges to avoid context bloat
+      if (updatedHistory.length > 20) {
+        updatedHistory.splice(0, 2); // Remove oldest exchange
+      }
+    }
+  }
+  
   // Always return "implicit" as grantType to ensure it's set from the start
   return { 
     messages: result, 
     cartId: currentCartId, 
-    grantType: "implicit" as const 
+    grantType: "implicit" as const,
+    conversationHistory: updatedHistory,
+    lastActionSuccess: undefined // Reset for next action
   };
 };
 
