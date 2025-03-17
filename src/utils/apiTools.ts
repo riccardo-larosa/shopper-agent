@@ -12,6 +12,7 @@ export const execGetRequestTool = tool(
   async ({ endpoint, grantType }) => {
     console.log(`execGetRequestTool: ${endpoint}`, grantType);
     const { access_token: token } = await getToken(grantType);
+    console.log(`token: ${token}`);
     const results = await execGetRequest(endpoint, token);
     return JSON.stringify(results);
   },
@@ -36,6 +37,7 @@ export const execPostRequestTool = tool(
   async ({ endpoint, body, grantType }) => {
     console.log(`execPostRequestTool: ${endpoint}`, body, grantType);
     const { access_token: token } = await getToken(grantType);
+    console.log(`token: ${token}`);
     const results = await execPostRequest(endpoint, token, body);
     return JSON.stringify(results);
   },
@@ -100,6 +102,8 @@ export async function getToken(grantType: string): Promise<{ access_token: any; 
     body["client_secret"] = process.env.EP_CLIENT_SECRET;
   }
 
-  return await execPostRequest("/oauth/access_token", "", body);
+  const result = await execPostRequest("/oauth/access_token", "", body);
+
+  return result.data;
 }
 
