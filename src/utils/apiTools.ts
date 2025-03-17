@@ -86,7 +86,7 @@ export const execPutRequestTool = tool(
  * @param grantType - The type of token to get. Must be either 'implicit' or 'client_credentials'
  * @returns The token
  */
-async function getToken(grantType: string): Promise<{ access_token: any; }> {
+export async function getToken(grantType: string): Promise<{ access_token: any; }> {
   if (grantType !== "implicit" && grantType !== "client_credentials") {
     throw new Error("Invalid token type. Must be either 'implicit' or 'client_credentials'");
   }

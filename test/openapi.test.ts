@@ -1,6 +1,7 @@
 import { config } from 'dotenv';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { testOpenApiTools } from './openapi.tools.test.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -31,7 +32,8 @@ async function runTest() {
   process.exit(0);
 }
 
-runTest();
+// runTest();
+testOpenApiTools();
 
 // const urls = [
 //   'https://elasticpath.dev/assets/openapispecs/catalog/catalog_view.yaml',
