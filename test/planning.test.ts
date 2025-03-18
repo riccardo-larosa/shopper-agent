@@ -19,15 +19,15 @@ config({ path: resolve(__dirname, '../.env') });
 const APITool = async (query: string, apiName: string, conversationHistory: string[] = []) => {
   // This is a simplified mock that returns predictable results for testing
   if (query.includes('red shoes')) {
-    return 'GET /api/catalog/products?filter=eq(color,red)&filter=eq(category,shoes)';
+    return 'GET /catalog/products?filter=eq(color,red)&filter=eq(category,shoes)';
   } else if (query.includes("women's shoes under $50")) {
-    return 'GET /api/catalog/products?filter=eq(gender,womens)&filter=eq(category,shoes)&filter=lte(price,50)&filter=eq(size,9)';
+    return 'GET /catalog/products?filter=eq(gender,womens)&filter=eq(category,shoes)&filter=lte(price,50)&filter=eq(size,9)';
   } else if (query.includes('ones in red') && conversationHistory.some(h => h.includes('running'))) {
-    return 'GET /api/catalog/products?filter=eq(category,running-shoes)&filter=eq(color,red)';
+    return 'GET /catalog/products?filter=eq(category,running-shoes)&filter=eq(color,red)';
   } else if (query.includes('most expensive') && query.includes('summer')) {
-    return 'GET /api/catalog/products?filter=eq(collection,summer)&sort=-price';
+    return 'GET /catalog/products?filter=eq(collection,summer)&sort=-price';
   }
-  return 'GET /api/catalog/products';
+  return 'GET /catalog/products';
 };
 
 describe('Planning System Tests', () => {

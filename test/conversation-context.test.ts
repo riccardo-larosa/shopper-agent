@@ -60,7 +60,7 @@ describe('Conversation History Tests', () => {
         messages: [
           { _getType: () => 'human', content: 'Show me new items' }
         ],
-        conversationHistory: Array(30).fill().map((_, i) => 
+        conversationHistory: Array(30).fill('').map((_, i) => 
           i % 2 === 0 ? `User: Test message ${i/2}` : `Assistant: Response ${Math.floor(i/2)}`
         ),
         cartId: 'test-cart-1',
