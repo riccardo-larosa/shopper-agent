@@ -7,7 +7,8 @@
     "test:planning": "TS_NODE_COMPILER_OPTIONS='{\"noUnusedParameters\":false}' mocha --require ts-node/register --loader=ts-node/esm test/planning.test.ts",
     "test:context": "mocha --require ts-node/register --loader=ts-node/esm test/conversation-context.test.ts",
     "test:validation": "TS_NODE_COMPILER_OPTIONS='{\"noUnusedParameters\":false}' mocha --require ts-node/register --loader=ts-node/esm test/validation.test.ts",
-    "test:all": "npm run test:planning && npm run test:context && npm run test:validation",
+    "test:apitools": "tsx test/apiTools.test.ts",
+    "test:all": "npm run test:planning && npm run test:context && npm run test:validation && npm run test:apitools",
     "start": "tsx --experimental-wasm-modules -r dotenv/config src/index.ts",
     "test:openapi": "tsx test/openapi.test.ts"
   },

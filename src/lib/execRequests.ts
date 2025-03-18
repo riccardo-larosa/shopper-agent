@@ -1,6 +1,8 @@
+import { ShopperState } from '../indexShopper';
+
 // Add global state type declaration for TypeScript
 declare global {
-  var lastShopperState: any;
+  var lastShopperState: typeof ShopperState.State;
 }
 
 /**

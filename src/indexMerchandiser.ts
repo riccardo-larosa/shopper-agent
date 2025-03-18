@@ -44,6 +44,19 @@ const callModel = async (state: typeof MerchandiserState.State) => {
       Using the tools provided (and only the tools provided), you should break down the task into smaller tasks and complete the task.
       Before using execGetRequestTool, execPostRequestTool, execPutRequestTool, you should use any of the other tools to build the right API call.
       
+      API USAGE GUIDELINES:
+      - When using execPostRequestTool, always provide ALL THREE parameters:
+        - endpoint: The API endpoint to call
+        - body: A properly formatted JSON object for the request body (REQUIRED, cannot be empty)
+        - grantType: The type of token to use (use "client_credentials")
+      
+      Example POST request:
+      execPostRequestTool({
+        endpoint: "/pcm/products",
+        body: { "data": { "type": "product", "attributes": { "name": "Example Product" } } },
+        grantType: "client_credentials"
+      })
+      
       The grant type is: client_credentials. Use this grant type when interacting with APIs that require a token.
     `.trim()
   };

@@ -11,7 +11,7 @@ import {
   BaseMessage,
   ToolMessage,
   HumanMessage,
-  type AIMessage,
+  AIMessage,
 } from "@langchain/core/messages";
 import { ChatOpenAI } from "@langchain/openai";
 import { SHOPPER_TOOLS_LIST } from "./tools";
@@ -27,7 +27,7 @@ declare global {
 const GRAPH_MODEL = process.env.GRAPH_MODEL || "gpt-4o";
 
 // Create a custom annotation that extends MessagesAnnotation to include cartId
-const ShopperState = Annotation.Root({
+export const ShopperState = Annotation.Root({
   ...MessagesAnnotation.spec,
   cartId: Annotation<string | undefined>,
   grantType: Annotation<"implicit">,
@@ -58,9 +58,9 @@ const callModel = async (state: typeof ShopperState.State) => {
   const recentHistory = messages
     .slice(-6) // Consider last 3 exchanges (user + assistant)
     .map(msg => {
-      if (msg._getType() === "human") {
+      if (msg instanceof HumanMessage) {
         return `User: ${msg.content}`;
-      } else if (msg._getType() === "ai") {
+      } else if (msg instanceof AIMessage) {
         return `Assistant: ${msg.content?.toString().substring(0, 200)}...`; // Truncate long responses
       }
       return "";
@@ -86,10 +86,17 @@ const callModel = async (state: typeof ShopperState.State) => {
       
       API USAGE GUIDELINES:
       - Always find the right API to use based on the task. Don't guess. Use tools to find matching APIs.
-      - When using execPostRequestTool, always provide three parameters:
+      - When using execPostRequestTool, always provide ALL THREE parameters:
         - endpoint: The API endpoint to call
-        - body: A properly formatted JSON object for the request body
+        - body: A properly formatted JSON object for the request body (REQUIRED, cannot be empty)
         - grantType: The type of token to use (use "${state.grantType}")
+      
+      Example POST request:
+      execPostRequestTool({
+        endpoint: "/carts",
+        body: { "data": { "type": "cart" } },
+        grantType: "${state.grantType}"
+      })
       
       IMPORTANT INFORMATION:
       - Cart ID: ${currentCartId} (use for cart-related APIs)
@@ -109,7 +116,7 @@ const callModel = async (state: typeof ShopperState.State) => {
   const updatedHistory = [...conversationHistory];
   if (messages.length > 0) {
     const latestUserMessage = messages[messages.length - 1];
-    if (latestUserMessage._getType() === "human") {
+    if (latestUserMessage instanceof HumanMessage) {
       updatedHistory.push(`User: ${latestUserMessage.content}`);
       updatedHistory.push(`Assistant: ${result.content}`);
       // Keep only last 10 exchanges to avoid context bloat
@@ -136,7 +143,7 @@ const shouldContinue = (state: typeof ShopperState.State) => {
   // Cast here since `tool_calls` does not exist on `BaseMessage`
   const messageCastAI = lastMessage as AIMessage;
   // if the last message is not an AI message or it does not have any tool calls, we should end.
-  if (messageCastAI._getType() !== "ai" || !messageCastAI.tool_calls?.length) {
+  if (!(messageCastAI instanceof AIMessage) || !messageCastAI.tool_calls?.length) {
     console.log("END");
     return END;
   }

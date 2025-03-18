@@ -32,9 +32,16 @@ export const execGetRequestTool = tool(
  * @param body - The body of the POST request
  * @param grantType - The type of token to get. Must be either 'implicit' or 'client_credentials'
  * @returns The results of the POST request
+ * @example
+ * // Example usage:
+ * const result = await execPostRequestTool.invoke({
+ *   endpoint: "/carts",
+ *   body: { "data": { "type": "cart" } },
+ *   grantType: "implicit"
+ * });
  */
 export const execPostRequestTool = tool(
-  async ({ endpoint, body, grantType }) => {
+  async ({ endpoint, body = {}, grantType }) => {
     console.log(`execPostRequestTool: ${endpoint}`, body, grantType);
     const { access_token: token } = await getToken(grantType);
     console.log(`token: ${token}`);
@@ -46,7 +53,11 @@ export const execPostRequestTool = tool(
     description: "Execute a POST request to the API",
     schema: z.object({
       endpoint: z.string().describe("The API endpoint to call"),
-      body: z.record(z.any()).describe("The body of the POST request"),
+      body: z.record(z.any())
+        .describe("The body of the POST request - REQUIRED")
+        .refine(body => Object.keys(body).length > 0, {
+          message: "POST requests require a non-empty body object"
+        }),
       grantType: z.enum(["implicit", "client_credentials"]).describe("The type of token to get. Must be either 'implicit' or 'client_credentials'")
     })
   }
