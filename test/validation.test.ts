@@ -3,7 +3,21 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { ChatOpenAI } from "@langchain/openai";
+// Use a mock instead of real implementation
+// import { ChatOpenAI } from "@langchain/openai";
+
+// Mock ChatOpenAI class for testing
+class ChatOpenAI {
+  invoke: (...args: any[]) => Promise<any>;
+  
+  constructor() {
+    this.invoke = sinon.stub();
+  }
+}
+
+// Add this for correct ESM handling
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -12,42 +26,33 @@ const __dirname = dirname(__filename);
 config({ path: resolve(__dirname, '../.env') });
 
 describe('Action Validation Tests', () => {
-  let llmStub;
-  let validationMock;
+  let llm: ChatOpenAI;
   
   beforeEach(() => {
-    // Create test doubles for the LLM interactions
-    llmStub = sinon.stub(ChatOpenAI.prototype, 'invoke');
+    // Create a fresh instance of the mock for each test
+    llm = new ChatOpenAI();
     
     // First call is the planning phase
-    llmStub.onFirstCall().resolves({
+    (llm.invoke as sinon.SinonStub).onFirstCall().resolves({
       content: "Primary intent: Search for products\nRequired info: Product type=shoes, color=red\nExpected outcome: List of matching products"
     });
     
     // Second call is the API selection phase
-    llmStub.onSecondCall().resolves({
+    (llm.invoke as sinon.SinonStub).onSecondCall().resolves({
       content: "Use GET /catalog/products?filter=eq(color,red)&filter=eq(type,shoes)"
     });
-    
-    // Third call is for validation
-    validationMock = llmStub.onThirdCall();
-  });
-  
-  afterEach(() => {
-    // Clean up stubs after each test
-    llmStub.restore();
   });
   
   it('should accept valid action plans without revision', async () => {
     // Mock the validation to return VALID
-    validationMock.resolves({
+    (llm.invoke as sinon.SinonStub).onThirdCall().resolves({
       content: "VALID"
     });
     
     // Create a simplified version of the APITool function for testing
-    const mockAPITool = async (query, apiName, history = []) => {
-      // Simulate the APITool flow using mocked LLM responses
-      const llm = new ChatOpenAI();
+    const mockAPITool = async (query: string, apiName: string, history: string[] = []) => {
+      // We'll use the mockLLM instance from the outer scope that we've already configured
+      // This avoids creating a new instance with new stubs
       
       // Call planning step
       const planResult = await llm.invoke([
@@ -81,24 +86,24 @@ describe('Action Validation Tests', () => {
     // Verify that the result is the unmodified API plan
     expect(result).to.equal("Use GET /catalog/products?filter=eq(color,red)&filter=eq(type,shoes)");
     // Verify that the validation function was called
-    expect(llmStub.callCount).to.equal(3);
+    expect((llm.invoke as sinon.SinonStub).callCount).to.equal(3);
   });
   
   it('should revise action plans that don\'t match user intent', async () => {
     // Mock the validation to return NEEDS_REVISION
-    validationMock.resolves({
+    (llm.invoke as sinon.SinonStub).onThirdCall().resolves({
       content: "NEEDS_REVISION: The plan doesn't include size filter mentioned in the query"
     });
     
     // Add a fourth call for the revision
-    llmStub.onCall(3).resolves({
+    (llm.invoke as sinon.SinonStub).onCall(3).resolves({
       content: "Use GET /catalog/products?filter=eq(color,red)&filter=eq(type,shoes)&filter=eq(size,9)"
     });
     
     // Create a simplified version of the APITool function for testing
-    const mockAPITool = async (query, apiName, history = []) => {
-      // Simulate the APITool flow using mocked LLM responses
-      const llm = new ChatOpenAI();
+    const mockAPITool = async (query: string, apiName: string, history: string[] = []) => {
+      // We'll use the mockLLM instance from the outer scope that we've already configured
+      // This avoids creating a new instance with new stubs
       
       // Call planning step
       const planResult = await llm.invoke([
@@ -135,6 +140,6 @@ describe('Action Validation Tests', () => {
     // Verify that the result is the revised API plan
     expect(result).to.equal("Use GET /catalog/products?filter=eq(color,red)&filter=eq(type,shoes)&filter=eq(size,9)");
     // Verify that the revision function was called
-    expect(llmStub.callCount).to.equal(4);
+    expect((llm.invoke as sinon.SinonStub).callCount).to.equal(4);
   });
 });

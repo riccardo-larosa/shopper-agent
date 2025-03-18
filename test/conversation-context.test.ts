@@ -4,6 +4,10 @@ import { fileURLToPath } from 'url';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
+// Add this for correct ESM handling
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
