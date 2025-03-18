@@ -4,6 +4,10 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "test:planning": "mocha test/planning.test.ts --require ts-node/register",
+    "test:context": "mocha test/conversation-context.test.ts --require ts-node/register",
+    "test:validation": "mocha test/validation.test.ts --require ts-node/register",
+    "test:all": "npm run test:planning && npm run test:context && npm run test:validation",
     "start": "tsx --experimental-wasm-modules -r dotenv/config src/index.ts",
     "test:openapi": "tsx test/openapi.test.ts"
   },
