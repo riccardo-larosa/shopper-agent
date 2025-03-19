@@ -10,14 +10,17 @@ declare global {
  * @param token - Optional authentication token
  * @returns Headers object with appropriate Content-Type and Authorization
  */
-function createHeaders(token?: string) {
-    const headers: Record<string, string> = {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-        'Content-Type': token ? 'application/json' : 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
-    };
-    console.log(`\x1b[93m headers: ${JSON.stringify(headers)}\x1b[0m`);
-    return headers;
+function createHeaders(token?: string, customHeaders?: Record<string, string>) {
+  const headers: Record<string, string> = {
+    ...(token && { Authorization: `Bearer ${token}` }),
+    'Content-Type': token
+      ? 'application/json'
+      : 'application/x-www-form-urlencoded',
+    Accept: 'application/json',
+    ...(customHeaders ?? {})
+  }
+  console.log(`\x1b[93m headers: ${JSON.stringify(headers)}\x1b[0m`)
+  return headers
 }
 
 /**
@@ -25,7 +28,14 @@ function createHeaders(token?: string) {
  * @returns The base URL for API requests
  */
 function getBaseurl() {
-    return process.env.EP_BASE_URL;
+  return process.env.EP_BASE_URL
+}
+
+export type ExecGetRequestOptions = {
+  endpoint: string
+  token: string
+  customHeaders?: Record<string, string>
+  baseUrl?: string
 }
 
 /**
@@ -35,25 +45,25 @@ function getBaseurl() {
  * @returns The response data as JSON with success metadata
  * @throws Error if the request fails or returns a non-200 status code
  */
-export async function execGetRequest(
-    endpoint: string,
-    token: string,
-    // params: Record<string, any> = {},
-    //baseurl: string = getBaseurl()
-): Promise<any> {
-    try {
-        const baseurl = getBaseurl();
-        const url = generateUrl(baseurl, endpoint);
+export async function execGetRequest({
+  endpoint,
+  token,
+  customHeaders,
+  baseUrl
+}: ExecGetRequestOptions): Promise<any> {
+  try {
+    const baseurl = baseUrl ?? getBaseurl()
+    const url = generateUrl(baseurl, endpoint)
 
-        console.log(`\x1b[94m ==> GET ${url}\x1b[0m `);
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: createHeaders(token),
-            // ...params && { search: new URLSearchParams(params).toString() }
-        });
+    console.log(`\x1b[94m ==> GET ${url}\x1b[0m `)
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: createHeaders(token, customHeaders)
+      // ...params && { search: new URLSearchParams(params).toString() }
+    })
 
         const data = await response.json();
-        
+
         // Add success/failure metadata for better feedback
         const result = {
             success: response.ok,
@@ -61,12 +71,12 @@ export async function execGetRequest(
             statusText: response.statusText,
             data: data
         };
-        
+
         // Update shopper state if available
         if (global.lastShopperState) {
             global.lastShopperState.lastActionSuccess = response.ok;
         }
-        
+
         if (!response.ok) {
             console.error(`\x1b[31m HTTP error! status: ${response.status}, message: ${JSON.stringify(data)} \x1b[0m`);
         }
@@ -74,18 +84,26 @@ export async function execGetRequest(
         return result;
     } catch (error) {
         console.error('Error in execGetRequest:', error);
-        
+
         // Mark action as failed in state if available
         if (global.lastShopperState) {
             global.lastShopperState.lastActionSuccess = false;
         }
-        
+
         return {
             success: false,
             error: `${error}`,
             message: "An error occurred while executing the request"
         };
     }
+}
+
+export type ExecPostRequestOptions = {
+  endpoint: string
+  token: string
+  body: any
+  baseUrl?: string
+  customHeaders?: Record<string, string>
 }
 
 /**
@@ -96,28 +114,29 @@ export async function execGetRequest(
  * @returns The response data as JSON with success metadata
  * @throws Error if the request fails or returns a non-200 status code
  */
-export async function execPostRequest(
-    endpoint: string,
-    token: string,
-    body: any,
-    // baseurl: string = getBaseurl()
-): Promise<any> {
-    try {
-        const baseurl = getBaseurl();
-        const url = generateUrl(baseurl, endpoint);
-        
-        console.log(`\x1b[94m ==> POST ${url}\x1b[0m `);
-        console.log(`body: ${JSON.stringify(body)}`);
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: createHeaders(token),
-            body: token
-                ? JSON.stringify(body)  // for application/json
-                : new URLSearchParams(body).toString()  // for application/x-www-form-urlencoded
-        });
+export async function execPostRequest({
+  endpoint,
+  baseUrl,
+  body,
+  token,
+  customHeaders
+}: ExecPostRequestOptions): Promise<any> {
+  try {
+    const baseurl = baseUrl ?? getBaseurl()
+    const url = generateUrl(baseurl, endpoint)
+
+    console.log(`\x1b[94m ==> POST ${url}\x1b[0m `)
+    console.log(`body: ${JSON.stringify(body)}`)
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: createHeaders(token, customHeaders),
+      body: token
+        ? JSON.stringify(body) // for application/json
+        : new URLSearchParams(body).toString() // for application/x-www-form-urlencoded
+    })
 
         const data = await response.json();
-        
+
         // Add success/failure metadata for better feedback
         const result = {
             success: response.ok,
@@ -125,12 +144,12 @@ export async function execPostRequest(
             statusText: response.statusText,
             data: data
         };
-        
+
         // Update shopper state if available
         if (global.lastShopperState) {
             global.lastShopperState.lastActionSuccess = response.ok;
         }
-        
+
         if (!response.ok) {
             console.error(`\x1b[31m HTTP error! status: ${response.status}, message: ${JSON.stringify(data)} \x1b[0m`);
         }
@@ -138,18 +157,26 @@ export async function execPostRequest(
         return result;
     } catch (error) {
         console.error('Error in execPostRequest:', error);
-        
+
         // Mark action as failed in state if available
         if (global.lastShopperState) {
             global.lastShopperState.lastActionSuccess = false;
         }
-        
+
         return {
             success: false,
             error: `${error}`,
             message: "An error occurred while executing the request"
         };
     }
+}
+
+type ExecPutRequestOptions = {
+  endpoint: string
+  token: string
+  body: any
+  customHeaders?: Record<string, string>
+  baseUrl?: string
 }
 
 /**
@@ -160,35 +187,40 @@ export async function execPostRequest(
  * @returns The response data as JSON
  * @throws Error if the request fails or returns a non-200 status code
  */
-export async function execPutRequest(
-    endpoint: string,
-    token: string,
-    body: any,
-    // baseurl: string = getBaseurl()
-): Promise<any> {
-    try {
-        const baseurl = getBaseurl();
-        const url = generateUrl(baseurl, endpoint);
-        
-        console.log(`\x1b[94m ==> PUT ${url}\x1b[0m `);
-        console.log(`body: ${JSON.stringify(body)}`);
-        const response = await fetch(url, {
-            method: 'PUT',
-            headers: createHeaders(token),
-            body: JSON.stringify(body)  // PUT requests always use JSON
-        });
+export async function execPutRequest({
+  endpoint,
+  token,
+  body,
+  customHeaders,
+  baseUrl
+}: ExecPutRequestOptions): Promise<any> {
+  try {
+    const baseurl = baseUrl ?? getBaseurl()
+    const url = generateUrl(baseurl, endpoint)
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`\x1b[31m HTTP error! status: ${response.status}, message: ${errorText} \x1b[0m`);
-            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-        }
+    console.log(`\x1b[94m ==> PUT ${url}\x1b[0m `)
+    console.log(`body: ${JSON.stringify(body)}`)
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: createHeaders(token, customHeaders),
+      body: JSON.stringify(body) // PUT requests always use JSON
+    })
 
-        return await response.json();
-    } catch (error) {
-        console.error('Error in execPutRequest:', error);
-        throw error;
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(
+        `\x1b[31m HTTP error! status: ${response.status}, message: ${errorText} \x1b[0m`
+      )
+      throw new Error(
+        `HTTP error! status: ${response.status}, message: ${errorText}`
+      )
     }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error in execPutRequest:', error)
+    throw error
+  }
 }
 
 /**
@@ -198,10 +230,10 @@ export async function execPutRequest(
  * @returns A properly formatted URL
  */
 export function generateUrl(baseUrl: string, endpoint: string): string {
-    // Remove any trailing slash from baseUrl and leading slash from endpoint
-    const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-    const cleanEndpoint = endpoint.replace(/^\//, '');
-    
-    // Combine the URLs
-    return `${cleanBaseUrl}/${cleanEndpoint}`;
+  // Remove any trailing slash from baseUrl and leading slash from endpoint
+  const cleanBaseUrl = baseUrl.replace(/\/$/, '')
+  const cleanEndpoint = endpoint.replace(/^\//, '')
+
+  // Combine the URLs
+  return `${cleanBaseUrl}/${cleanEndpoint}`
 }
