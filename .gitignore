@@ -7,3 +7,6 @@ src/generated/**
 # LangGraph API
 .langgraph_api
 myenv/
+
+# intelligIDEA
+.idea/
