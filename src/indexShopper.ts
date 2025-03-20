@@ -86,18 +86,17 @@ const callModel = async (state: ShopperState) => {
       - When using execPostRequestTool, always provide ALL THREE parameters:
         - endpoint: The API endpoint to call
         - body: A properly formatted JSON object for the request body (REQUIRED, cannot be empty)
-        - grantType: The type of token to use (use "implicit")
+        
       
       Example POST request:
       execPostRequestTool({
         endpoint: "/carts",
         body: { "data": { "type": "cart" } },
-        grantType: "implicit"
       })
       
       IMPORTANT INFORMATION:
       - Cart ID: ${currentCartId} (use for cart-related APIs)
-      - Grant type: implicit (use for APIs requiring token)
+
       ${actionFeedback}
     `.trim()
   }
@@ -138,7 +137,7 @@ const shouldContinue = (state: ShopperState) => {
   const messageCastAI = lastMessage as AIMessage
   // if the last message is not an AI message or it does not have any tool calls, we should end.
   if (
-    !(messageCastAI instanceof AIMessage) ||
+    messageCastAI._getType() !== 'ai' ||
     !messageCastAI.tool_calls?.length
   ) {
     console.log('END')

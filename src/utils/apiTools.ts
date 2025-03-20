@@ -7,16 +7,17 @@ import { z } from 'zod'
 import { tool } from '@langchain/core/tools'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { MerchandiserConfig } from '../types/merchandiser-schemas'
+import { ShopperConfig } from '../types/shopper-schemas'
 import { resolveEpRequestParams } from './resolve-ep-request-params'
 
 /**
  * Execute a GET request to the API
  * @param endpoint - The API endpoint to call
- * @param grantType - The type of token to get. Must be either 'implicit' or 'client_credentials'
+ * @param RunnableConfig<MerchandiserConfig | ShopperConfig> - The configuration for the tool
  * @returns The results of the GET request
  */
 export const execGetRequestTool = tool(
-  async ({ endpoint }, config: RunnableConfig<MerchandiserConfig>) => {
+  async ({ endpoint }, config: RunnableConfig<MerchandiserConfig | ShopperConfig>) => {
     assertAuthenticationConfigPresence(config.configurable)
 
     const options = await resolveEpRequestParams(
@@ -44,11 +45,11 @@ export const execGetRequestTool = tool(
  * Execute a POST request to the API
  * @param endpoint - The API endpoint to call
  * @param body - The body of the POST request
- * @param grantType - The type of token to get. Must be either 'implicit' or 'client_credentials'
+ * @param data - The data to send in the PUT request (can also be passed as 'body')
  * @returns The results of the POST request
  */
 export const execPostRequestTool = tool(
-  async ({ endpoint, body }, config: RunnableConfig<MerchandiserConfig>) => {
+  async ({ endpoint, body }, config: RunnableConfig<MerchandiserConfig | ShopperConfig>) => {
     assertAuthenticationConfigPresence(config.configurable)
 
     const options = await resolveEpRequestParams(
@@ -83,13 +84,13 @@ export const execPostRequestTool = tool(
  * Execute a PUT request to the API
  * @param endpoint - The API endpoint to call
  * @param body - The data to send in the PUT request (can also be passed as 'data')
- * @param grantType - The type of token to get. Must be either 'implicit' or 'client_credentials'
+ * @param data - The data to send in the PUT request (can also be passed as 'body')
  * @returns The results of the PUT request
  */
 export const execPutRequestTool = tool(
   async (
     { endpoint, body, data },
-    config: RunnableConfig<MerchandiserConfig>
+    config: RunnableConfig<MerchandiserConfig | ShopperConfig>
   ) => {
     assertAuthenticationConfigPresence(config.configurable)
 
@@ -132,7 +133,7 @@ export const execPutRequestTool = tool(
   }
 )
 
-function assertAuthenticationConfigPresence(config: MerchandiserConfig) {
+function assertAuthenticationConfigPresence(config: MerchandiserConfig | ShopperConfig) {
   if (!config?.epKeyAuthentication && !config?.epTokenAuthentication) {
     throw new Error(
       `No "epKeyAuthentication" or "epTokenAuthentication" found in configurable please add a authentication method`
