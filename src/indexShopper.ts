@@ -23,11 +23,6 @@ import {
   ShopperStateSchema
 } from './types/shopper-schemas'
 
-// Add global state type to make TypeScript happy
-declare global {
-  var lastShopperState: ShopperState
-}
-
 // Use environment variable with fallback to "gpt-4o"
 const GRAPH_MODEL = process.env.GRAPH_MODEL || 'gpt-4o'
 
