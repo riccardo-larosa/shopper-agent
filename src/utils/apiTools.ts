@@ -6,7 +6,7 @@ import {
 import { z } from 'zod'
 import { tool } from '@langchain/core/tools'
 import { RunnableConfig } from '@langchain/core/runnables'
-import { MerchandiserRunnableConfigurable } from '../types/merchandiser-runnable'
+import { MerchandiserConfig } from '../types/merchandiser-schemas'
 import { resolveEpRequestParams } from './resolve-ep-request-params'
 
 /**
@@ -16,16 +16,12 @@ import { resolveEpRequestParams } from './resolve-ep-request-params'
  * @returns The results of the GET request
  */
 export const execGetRequestTool = tool(
-  async (
-    { endpoint },
-    config: RunnableConfig<MerchandiserRunnableConfigurable>
-  ) => {
-    if (!config?.configurable?.epAuthentication) {
-      throw new Error(`No "epAuthentication" found in configurable`)
-    }
+  async ({ endpoint }, config: RunnableConfig<MerchandiserConfig>) => {
+    assertAuthenticationConfigPresence(config.configurable)
 
     const options = await resolveEpRequestParams(
-      config.configurable.epAuthentication,
+      config.configurable.epTokenAuthentication ??
+        config.configurable.epKeyAuthentication,
       config.configurable.epBaseUrl
     )
 
@@ -52,16 +48,12 @@ export const execGetRequestTool = tool(
  * @returns The results of the POST request
  */
 export const execPostRequestTool = tool(
-  async (
-    { endpoint, body },
-    config: RunnableConfig<MerchandiserRunnableConfigurable>
-  ) => {
-    if (!config?.configurable?.epAuthentication) {
-      throw new Error(`No "epAuthentication" found in configurable`)
-    }
+  async ({ endpoint, body }, config: RunnableConfig<MerchandiserConfig>) => {
+    assertAuthenticationConfigPresence(config.configurable)
 
     const options = await resolveEpRequestParams(
-      config.configurable.epAuthentication,
+      config.configurable.epTokenAuthentication ??
+        config.configurable.epKeyAuthentication,
       config.configurable.epBaseUrl
     )
 
@@ -76,11 +68,12 @@ export const execPostRequestTool = tool(
     name: 'execPostRequestTool',
     description: 'Execute a POST request to the API',
     schema: z.object({
-      endpoint: z.string().describe("The API endpoint to call"),
-      body: z.record(z.any())
-        .describe("The body of the POST request - REQUIRED")
-        .refine(body => Object.keys(body).length > 0, {
-          message: "POST requests require a non-empty body object"
+      endpoint: z.string().describe('The API endpoint to call'),
+      body: z
+        .record(z.any())
+        .describe('The body of the POST request - REQUIRED')
+        .refine((body) => Object.keys(body).length > 0, {
+          message: 'POST requests require a non-empty body object'
         })
     })
   }
@@ -96,21 +89,20 @@ export const execPostRequestTool = tool(
 export const execPutRequestTool = tool(
   async (
     { endpoint, body, data },
-    config: RunnableConfig<MerchandiserRunnableConfigurable>
+    config: RunnableConfig<MerchandiserConfig>
   ) => {
+    assertAuthenticationConfigPresence(config.configurable)
+
     const payload = body || data
     if (!payload) {
       throw new Error("Either 'body' or 'data' must be provided")
     }
 
-    if (!config?.configurable?.epAuthentication) {
-      throw new Error(`No "epAuthentication" found in configurable`)
-    }
-
     console.log(`execPutRequestTool: ${endpoint}`, payload)
 
     const options = await resolveEpRequestParams(
-      config.configurable.epAuthentication,
+      config.configurable.epTokenAuthentication ??
+        config.configurable.epKeyAuthentication,
       config.configurable.epBaseUrl
     )
 
@@ -140,38 +132,60 @@ export const execPutRequestTool = tool(
   }
 )
 
-/**
- * Get a token for the API
- * @param grantType - The type of token to get. Must be either 'implicit' or 'client_credentials'
- * @param baseUrl - The base URL of the API
- * @returns The token
- */
-export async function getToken(
-  grantType: string,
-  baseUrl?: string
-): Promise<{ access_token: any }> {
-  if (grantType !== 'implicit' && grantType !== 'client_credentials') {
+function assertAuthenticationConfigPresence(config: MerchandiserConfig) {
+  if (!config?.epKeyAuthentication && !config?.epTokenAuthentication) {
     throw new Error(
-      "Invalid token type. Must be either 'implicit' or 'client_credentials'"
+      `No "epKeyAuthentication" or "epTokenAuthentication" found in configurable please add a authentication method`
     )
   }
+}
 
-  const body: Record<string, string> = {
-    grant_type: grantType,
-    client_id: process.env.EP_CLIENT_ID
-  }
+type GetTokenImplicit = {
+  grantType: 'implicit'
+  clientId: string
+  baseUrl: string
+}
 
-  if (grantType === 'client_credentials') {
-    body['client_secret'] = process.env.EP_CLIENT_SECRET
+type GetTokenClientCredentials = {
+  grantType: 'client_credentials'
+  clientId: string
+  clientSecret: string
+  baseUrl: string
+}
+
+type GetTokenOptions = GetTokenImplicit | GetTokenClientCredentials
+
+/**
+ * Get a token from the API
+ * @param options
+ * @returns The access token
+ */
+export async function getToken(
+  options: GetTokenOptions
+): Promise<{ access_token: any }> {
+  if (options.grantType === 'implicit') {
+    const result = await execPostRequest({
+      endpoint: '/oauth/access_token',
+      token: '',
+      body: {
+        grant_type: 'implicit',
+        client_id: options.clientId
+      },
+      baseUrl: options.baseUrl
+    })
+    return result.data
   }
 
   const result = await execPostRequest({
     endpoint: '/oauth/access_token',
     token: '',
-    body,
-    baseUrl
+    body: {
+      grant_type: 'client_credentials',
+      client_id: options.clientId,
+      client_secret: options.clientSecret
+    },
+    baseUrl: options.baseUrl
   })
 
-
-    return result.data
+  return result.data
 }

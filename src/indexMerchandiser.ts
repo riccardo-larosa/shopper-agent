@@ -16,15 +16,21 @@ import {
 import { ChatOpenAI } from '@langchain/openai'
 import { MERCHANDISER_TOOLS_LIST } from './tools'
 import { z } from 'zod'
+import {
+  EpAuthentication,
+  EpKeysAuthentication,
+  EpTokenAuthentication
+} from './types/ep-auth'
+import {
+  MerchandiserConfigSchema,
+  MerchandiserState,
+  MerchandiserStateSchema
+} from './types/merchandiser-schemas'
 
 // Use environment variable with fallback to "gpt-4o"
 const GRAPH_MODEL = process.env.GRAPH_MODEL || 'gpt-4o'
 
 // Create a custom annotation that extends MessagesAnnotation to include cartId
-const MerchandiserState = Annotation.Root({
-  ...MessagesAnnotation.spec
-  // add any additional state you need
-})
 
 const llm = new ChatOpenAI({
   model: GRAPH_MODEL,
@@ -33,7 +39,7 @@ const llm = new ChatOpenAI({
 
 const toolNode = new ToolNode(MERCHANDISER_TOOLS_LIST)
 
-const callModel = async (state: typeof MerchandiserState.State) => {
+const callModel = async (state: MerchandiserState) => {
   const { messages } = state
 
   const systemMessage = {
@@ -66,12 +72,11 @@ const callModel = async (state: typeof MerchandiserState.State) => {
   })
 
   return {
-    messages: result,
-    grantType: 'client_credentials' as const
+    messages: result
   }
 }
 
-const shouldContinue = (state: typeof MerchandiserState.State) => {
+const shouldContinue = (state: MerchandiserState) => {
   const { messages } = state
 
   const lastMessage = messages[messages.length - 1]
@@ -88,7 +93,10 @@ const shouldContinue = (state: typeof MerchandiserState.State) => {
   return 'tools'
 }
 
-const workflow = new StateGraph(MerchandiserState)
+const workflow = new StateGraph(
+  MerchandiserStateSchema,
+  MerchandiserConfigSchema
+)
   .addNode('agent', callModel)
   .addNode('tools', toolNode)
   .addEdge(START, 'agent')
