@@ -10,8 +10,7 @@ export async function resolveEpRequestParams(
   baseUrl: string
 }> {
   if ('__access_token' in epAuthentication) {
-    const { epStoreId, epOrganizationId, epBaseUrl, __access_token } =
-      epAuthentication
+    const { epStoreId, epOrganizationId, __access_token } = epAuthentication
     return {
       token: epAuthentication.__access_token,
       baseUrl,
@@ -21,9 +20,16 @@ export async function resolveEpRequestParams(
       }
     }
   } else {
-    const { grantType, clientId, clientSecret } = epAuthentication
+    const { grantType, clientId, __clientSecret } = epAuthentication
     return {
-      token: (await getToken(grantType, baseUrl)).access_token,
+      token: (
+        await getToken({
+          grantType,
+          baseUrl,
+          clientId,
+          clientSecret: __clientSecret
+        })
+      ).access_token,
       baseUrl
     }
   }

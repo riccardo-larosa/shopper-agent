@@ -1,8 +1,8 @@
-import { ShopperState } from '../indexShopper';
-
 // Add global state type declaration for TypeScript
+import { ShopperState } from '../types/shopper-schemas'
+
 declare global {
-  var lastShopperState: typeof ShopperState.State;
+  var lastShopperState: ShopperState
 }
 
 /**
@@ -62,40 +62,42 @@ export async function execGetRequest({
       // ...params && { search: new URLSearchParams(params).toString() }
     })
 
-        const data = await response.json();
+    const data = await response.json()
 
-        // Add success/failure metadata for better feedback
-        const result = {
-            success: response.ok,
-            status: response.status,
-            statusText: response.statusText,
-            data: data
-        };
-
-        // Update shopper state if available
-        if (global.lastShopperState) {
-            global.lastShopperState.lastActionSuccess = response.ok;
-        }
-
-        if (!response.ok) {
-            console.error(`\x1b[31m HTTP error! status: ${response.status}, message: ${JSON.stringify(data)} \x1b[0m`);
-        }
-
-        return result;
-    } catch (error) {
-        console.error('Error in execGetRequest:', error);
-
-        // Mark action as failed in state if available
-        if (global.lastShopperState) {
-            global.lastShopperState.lastActionSuccess = false;
-        }
-
-        return {
-            success: false,
-            error: `${error}`,
-            message: "An error occurred while executing the request"
-        };
+    // Add success/failure metadata for better feedback
+    const result = {
+      success: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      data: data
     }
+
+    // Update shopper state if available
+    if (global.lastShopperState) {
+      global.lastShopperState.lastActionSuccess = response.ok
+    }
+
+    if (!response.ok) {
+      console.error(
+        `\x1b[31m HTTP error! status: ${response.status}, message: ${JSON.stringify(data)} \x1b[0m`
+      )
+    }
+
+    return result
+  } catch (error) {
+    console.error('Error in execGetRequest:', error)
+
+    // Mark action as failed in state if available
+    if (global.lastShopperState) {
+      global.lastShopperState.lastActionSuccess = false
+    }
+
+    return {
+      success: false,
+      error: `${error}`,
+      message: 'An error occurred while executing the request'
+    }
+  }
 }
 
 export type ExecPostRequestOptions = {
@@ -135,40 +137,42 @@ export async function execPostRequest({
         : new URLSearchParams(body).toString() // for application/x-www-form-urlencoded
     })
 
-        const data = await response.json();
+    const data = await response.json()
 
-        // Add success/failure metadata for better feedback
-        const result = {
-            success: response.ok,
-            status: response.status,
-            statusText: response.statusText,
-            data: data
-        };
-
-        // Update shopper state if available
-        if (global.lastShopperState) {
-            global.lastShopperState.lastActionSuccess = response.ok;
-        }
-
-        if (!response.ok) {
-            console.error(`\x1b[31m HTTP error! status: ${response.status}, message: ${JSON.stringify(data)} \x1b[0m`);
-        }
-
-        return result;
-    } catch (error) {
-        console.error('Error in execPostRequest:', error);
-
-        // Mark action as failed in state if available
-        if (global.lastShopperState) {
-            global.lastShopperState.lastActionSuccess = false;
-        }
-
-        return {
-            success: false,
-            error: `${error}`,
-            message: "An error occurred while executing the request"
-        };
+    // Add success/failure metadata for better feedback
+    const result = {
+      success: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      data: data
     }
+
+    // Update shopper state if available
+    if (global.lastShopperState) {
+      global.lastShopperState.lastActionSuccess = response.ok
+    }
+
+    if (!response.ok) {
+      console.error(
+        `\x1b[31m HTTP error! status: ${response.status}, message: ${JSON.stringify(data)} \x1b[0m`
+      )
+    }
+
+    return result
+  } catch (error) {
+    console.error('Error in execPostRequest:', error)
+
+    // Mark action as failed in state if available
+    if (global.lastShopperState) {
+      global.lastShopperState.lastActionSuccess = false
+    }
+
+    return {
+      success: false,
+      error: `${error}`,
+      message: 'An error occurred while executing the request'
+    }
+  }
 }
 
 type ExecPutRequestOptions = {
