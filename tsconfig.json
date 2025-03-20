@@ -15,14 +15,13 @@
     "declaration": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noUnusedParameters": true,
+    "noUnusedParameters": false,
     "useDefineForClassFields": true,
     "strictPropertyInitialization": false
   },
   "exclude": [
-    "node_modules/",
+    "node_modules",
     "dist/",
-    "tests/"
   ],
   "include": [
     "./src",

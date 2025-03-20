@@ -1,10 +1,3 @@
-// Add global state type declaration for TypeScript
-import { ShopperState } from '../types/shopper-schemas'
-
-declare global {
-  var lastShopperState: ShopperState
-}
-
 /**
  * Creates headers for API requests
  * @param token - Optional authentication token

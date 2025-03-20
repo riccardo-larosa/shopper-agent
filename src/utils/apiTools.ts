@@ -2,7 +2,7 @@ import {
   execPostRequest,
   execGetRequest,
   execPutRequest
-} from 'lib/execRequests'
+} from '../lib/execRequests'
 import { z } from 'zod'
 import { tool } from '@langchain/core/tools'
 import { RunnableConfig } from '@langchain/core/runnables'

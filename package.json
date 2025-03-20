@@ -4,9 +4,10 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "test:planning": "TS_NODE_COMPILER_OPTIONS='{\"noUnusedParameters\":false}' mocha --require ts-node/register --loader=ts-node/esm test/planning.test.ts",
-    "test:context": "mocha --require ts-node/register --loader=ts-node/esm test/conversation-context.test.ts",
-    "test:validation": "TS_NODE_COMPILER_OPTIONS='{\"noUnusedParameters\":false}' mocha --require ts-node/register --loader=ts-node/esm test/validation.test.ts",
+    "test": "vitest",
+    "test:planning": "vitest run test/planning.test.ts",
+    "test:context": "vitest run test/conversation-context.test.ts",
+    "test:validation": "vitest run test/validation.test.ts",
     "test:apitools": "tsx test/apiTools.test.ts",
     "test:all": "npm run test:planning && npm run test:context && npm run test:validation && npm run test:apitools",
     "start": "tsx --experimental-wasm-modules -r dotenv/config src/index.ts",
@@ -29,17 +30,12 @@
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.8",
-    "@types/chai": "^5.2.0",
-    "@types/mocha": "^10.0.10",
-    "@types/sinon": "^17.0.4",
     "@types/uuid": "^10.0.0",
-    "chai": "^5.2.0",
     "dotenv": "^16.4.7",
-    "mocha": "^11.1.0",
     "prettier": "^3.5.2",
-    "sinon": "^19.0.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.9"
   }
 }
