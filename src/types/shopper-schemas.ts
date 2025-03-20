@@ -12,10 +12,14 @@ export const ShopperStateSchema = Annotation.Root({
  * This represents the expected configurable type for the Shopper Agent
  */
 export const ShopperConfigSchema = Annotation.Root({
-  epKeyAuthentication: Annotation<EpKeysAuthentication>,
+  epKeyAuthentication: Annotation<
+    Omit<EpKeysAuthentication, '__clientSecret' | 'grantType'> & {
+      grantType: 'implicit'
+    }
+  >,
   epTokenAuthentication: Annotation<EpTokenAuthentication>,
   epBaseUrl: Annotation<string | undefined>
 })
 
-export type MerchandiserConfig = typeof ShopperConfigSchema.State
+export type ShopperConfig = typeof ShopperConfigSchema.State
 export type ShopperState = typeof ShopperStateSchema.State
