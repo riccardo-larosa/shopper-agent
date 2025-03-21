@@ -4,6 +4,7 @@
     "dependencies": ["."],
     "graphs": {
       "shopper": "./src/indexShopper.ts:graph",
+      "shopper-supervisor": "./src/indexShopperSupervisor.ts:graph",
       "merchandiser": "./src/indexMerchandiser.ts:graph"
     },
     "env": ".env"
