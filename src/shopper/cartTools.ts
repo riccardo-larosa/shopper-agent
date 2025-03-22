@@ -15,11 +15,11 @@ const AGENT_MODEL = process.env.AGENT_MODEL || "gpt-4o-mini";
  */
 export const cartAgentTool = tool(
   async ({ query }, config: RunnableConfig<ShopperConfig>) => {
-    console.log(` enhancedCartTool query : ${query}`);
+    console.log(` cartAgentTool query : ${query}`);
     
     // Get the OpenAPI specification for carts
     const specDetails = await getOpenApiSpec(query, apiSpec);
-    console.log(`enhancedCartTool specDetails: ${JSON.stringify(specDetails).substring(0, 100)}...`);
+    console.log(`cartAgentTool specDetails: ${JSON.stringify(specDetails).substring(0, 100)}...`);
 
     // Set up the LLM to analyze the query
     const llm = new ChatOpenAI({
@@ -67,14 +67,14 @@ export const cartAgentTool = tool(
 
     // Get the LLM's analysis of the query
     const analyzeResult = await llm.invoke([systemMessage]);
-    console.log(`enhancedCartTool analysis: ${analyzeResult.content}`);
+    console.log(`cartAgentTool analysis: ${analyzeResult.content}`);
     
     try {
       // Parse the result to extract request details
       // First, try to extract the JSON directly
       const match = analyzeResult.content.toString().match(/{[\s\S]*}/);
       if (!match) {
-        console.log(`enhancedCartTool match: ${match}`);
+        console.log(`cartAgentTool match: ${match}`);
         return `Unable to parse response. Please try reformulating your query.`;
       }
       
@@ -83,7 +83,7 @@ export const cartAgentTool = tool(
       
       // Ensure configuration is available
       if (!config?.configurable) {
-        console.log(`enhancedCartTool config: ${config}`);
+        console.log(`cartAgentTool config: ${config}`);
         return `Configuration missing. Cannot execute request.`;
       }
       
@@ -125,7 +125,7 @@ export const cartAgentTool = tool(
     }
   },
   {
-    name: "enhancedCartTool",
+    name: "cartAgentTool",
     description: "Manage shopping cart operations including viewing, adding products, updating quantities, removing items, and checkout",
     schema: z.object({
       query: z.string().describe("The query describing what you want to do with the shopping cart (e.g., 'add product X to cart', 'view my cart', 'checkout')"),
