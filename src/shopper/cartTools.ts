@@ -1,122 +1,151 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { getOpenApiSpec } from "../lib/openapis";
 import { ChatOpenAI } from "@langchain/openai";
-import { execGetRequest, execPostRequest } from "../lib/execRequests";
 import { RunnableConfig } from '@langchain/core/runnables';
+import { getOpenApiSpec } from "../lib/openapis";
+import { execGetRequest, execPostRequest } from "../lib/execRequests";
 import { ShopperConfig } from '../types/shopper-schemas';
 import { resolveEpRequestParams } from '../utils/resolve-ep-request-params';
+import { APITool, cartAPITool } from "utils/ragTools";
 
-const apiSpec = "https://elasticpath.dev/assets/openapispecs/carts/OpenAPISpec.yaml";
+const USE_RAG = true
+const API_SPEC_URL = "https://elasticpath.dev/assets/openapispecs/carts/OpenAPISpec.yaml";
 const AGENT_MODEL = process.env.AGENT_MODEL || "gpt-4o-mini";
+const CART_SYSTEM_PROMPT = `
+    Given a query from a user, analyze the intent and determine the appropriate API request to fulfill it.
+    This tool is used to manage the shopping cart, add products to the cart, update products in the cart, or checkout the cart.
+    
+    Examples:
+    * query: "add product ABC123 to cart"
+    * query: "update quantity of product XYZ789 in cart to 3"
+    * query: "checkout my cart"
+    * query: "view my cart"
+    * query: "remove product DEF456 from cart"
+    
+    Based on the Open API specs, create a structured response with:
+    1. The request type (GET or POST)
+    2. The endpoint to use
+    3. The body parameters (for POST requests)
+    
+    Format your response as a JSON object with these fields:
+    {
+      "requestType": "GET" or "POST",
+      "endpoint": "/v2/carts/{cartId}/items",
+      "body": {}, // Only for POST requests
+      "explanation": "Brief explanation of what this request will do"
+    }
+  `.trim();
 
 /**
- * Enhanced cart tool that can understand user queries and execute GET/POST requests
+ * Processes a cart-related query and determines the appropriate API operation
+ * @param query The user's cart-related query (e.g. "add product to cart", "view cart")
+ * @param specDetails OpenAPI specification details for cart operations
+ * @returns Structured response with request type, endpoint, optional body params, and explanation
  */
+
+async function processCartOperation(query: string, specDetails: any) {
+  const llm = new ChatOpenAI({
+    model: AGENT_MODEL,
+    temperature: 0,
+  });
+
+  const systemMessage = {
+    role: "system",
+    content: [
+      CART_SYSTEM_PROMPT,
+      `Here is the query: ${query}`,
+      `Here are the Open API specs available: ${JSON.stringify(specDetails)}`,
+      global.lastShopperState?.cartId ? `Current cart ID: ${global.lastShopperState?.cartId}` : null
+    ].filter(Boolean).join('\n\n')
+  };
+
+  const result = await llm.invoke([systemMessage]);
+  console.log(`cartAgentTool analysis: ${result.content}`);
+
+  const match = result.content.toString().match(/{[\s\S]*}/);
+  if (!match) {
+    throw new Error('Unable to parse response. Please try reformulating your query.');
+  }
+  
+  const responseData = JSON.parse(match[0]);
+  return responseData as {
+    requestType: string;
+    endpoint: string;
+    body?: any;
+    explanation: string;
+  };
+}
+
+/**
+ * Executes a cart operation based on the request type and parameters
+ * @param requestType The type of request to execute (GET or POST)
+ * @param endpoint The API endpoint to call
+ * @param body The body parameters for POST requests
+ * @param options Authentication and configuration options
+**/
+async function executeCartOperation(
+  requestType: string,
+  endpoint: string,
+  body: any,
+  options: any
+) {
+  const processedEndpoint = endpoint.replace(
+    '{cartId}',
+    global.lastShopperState?.cartId || 'default'
+  );
+
+  if (requestType === 'GET') {
+    return await execGetRequest({
+      endpoint: processedEndpoint,
+      ...options
+    });
+  } else if (requestType === 'POST') {
+    return await execPostRequest({
+      endpoint: processedEndpoint,
+      body,
+      ...options
+    });
+  }
+  throw new Error(`Unsupported request type: ${requestType}. Only GET and POST are supported.`);
+}
+
+/**
+ * Main tool with cleaner structure
+ * @param query The user's cart-related query
+ * @param config Configuration options
+ * @returns Structured response with request type, endpoint, optional body params, and explanation
+**/
 export const cartAgentTool = tool(
   async ({ query }, config: RunnableConfig<ShopperConfig>) => {
-    console.log(` cartAgentTool query : ${query}`);
-    
-    // Get the OpenAPI specification for carts
-    const specDetails = await getOpenApiSpec(query, apiSpec);
-    console.log(`cartAgentTool specDetails: ${JSON.stringify(specDetails).substring(0, 100)}...`);
-
-    // Set up the LLM to analyze the query
-    const llm = new ChatOpenAI({
-      model: AGENT_MODEL,
-      temperature: 0,
-    });
-
-    // Create the system prompt for analyzing the query
-    const systemMessage = {
-      role: "system",
-      content: `
-        Given a query from a user, analyze the intent and determine the appropriate API request to fulfill it.
-        This tool is used to manage the shopping cart, add products to the cart, update products in the cart, or checkout the cart.
-        
-        Examples:
-        * query: "add product ABC123 to cart"
-        * query: "update quantity of product XYZ789 in cart to 3"
-        * query: "checkout my cart"
-        * query: "view my cart"
-        * query: "remove product DEF456 from cart"
-        
-        Based on the Open API specs, create a structured response with:
-        1. The request type (GET or POST)
-        2. The endpoint to use
-        3. The body parameters (for POST requests)
-        
-        Format your response as a JSON object with these fields:
-        {
-          "requestType": "GET" or "POST",
-          "endpoint": "/v2/carts/{cartId}/items",
-          "body": {}, // Only for POST requests
-          "explanation": "Brief explanation of what this request will do"
-        }
-      `.trim()
-    };
-
-    // Add the query and API specs to the system message
-    systemMessage.content += `\n\nHere is the query: ${query}`;
-    systemMessage.content += `\n\nHere are the Open API specs available: ${JSON.stringify(specDetails)}`;
-    
-    // Add cart ID context if available in global state
-    if (global.lastShopperState?.cartId) {
-      systemMessage.content += `\n\nCurrent cart ID: ${global.lastShopperState.cartId}`;
-    }
-
-    // Get the LLM's analysis of the query
-    const analyzeResult = await llm.invoke([systemMessage]);
-    console.log(`cartAgentTool analysis: ${analyzeResult.content}`);
+    console.log(`cartAgentTool query: ${query}`);
     
     try {
-      // Parse the result to extract request details
-      // First, try to extract the JSON directly
-      const match = analyzeResult.content.toString().match(/{[\s\S]*}/);
-      if (!match) {
-        console.log(`cartAgentTool match: ${match}`);
-        return `Unable to parse response. Please try reformulating your query.`;
+      // Get API specs
+      let specDetails 
+      if (USE_RAG) {
+        specDetails = await APITool(query, 'carts');
+      } else {
+        specDetails = await getOpenApiSpec(query, API_SPEC_URL);
       }
       
-      const responseData = JSON.parse(match[0]);
-      const { requestType, endpoint, body, explanation } = responseData;
+      // Analyze and parse the operation in one step
+      const { requestType, endpoint, body, explanation } = await processCartOperation(query, specDetails);
       
-      // Ensure configuration is available
+      // Validate config
       if (!config?.configurable) {
-        console.log(`cartAgentTool config: ${config}`);
-        return `Configuration missing. Cannot execute request.`;
+        throw new Error('Configuration missing. Cannot execute request.');
       }
       
-      // Get authentication parameters
+      // Get auth params
       const options = await resolveEpRequestParams(
         config.configurable.epTokenAuthentication ?? config.configurable.epKeyAuthentication,
         config.configurable.epBaseUrl
       );
       
-      // Replace {cartId} in the endpoint if it exists
-      const processedEndpoint = endpoint.replace(
-        '{cartId}', 
-        global.lastShopperState?.cartId || 'default'
-      );
+      // Execute the operation
+      const result = await executeCartOperation(requestType, endpoint, body, options);
       
-      // Execute the appropriate request type
-      let result;
-      if (requestType === 'GET') {
-        result = await execGetRequest({
-          endpoint: processedEndpoint,
-          ...options
-        });
-      } else if (requestType === 'POST') {
-        result = await execPostRequest({
-          endpoint: processedEndpoint,
-          body,
-          ...options
-        });
-      } else {
-        return `Unsupported request type: ${requestType}. Only GET and POST are supported.`;
-      }
-      
-      // Return the result with explanation
+      // Return formatted result
       return `${explanation}\n\nResult: ${JSON.stringify(result.data, null, 2)}`;
       
     } catch (error) {
@@ -139,7 +168,7 @@ export const cartAgentTool = tool(
 export const cartTool = tool(
   async ({ query }) => {
     console.log(` query : ${query}`);
-    const specDetails = await getOpenApiSpec(query, apiSpec);
+    const specDetails = await getOpenApiSpec(query, API_SPEC_URL);
     console.log(`cartTool specDetails: ${JSON.stringify(specDetails).substring(0, 100)}...`);
 
     const llm = new ChatOpenAI({

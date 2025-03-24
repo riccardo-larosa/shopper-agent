@@ -3,33 +3,52 @@ import { tool } from '@langchain/core/tools'
 import { findAPISpecification } from 'lib/mongoDBRetriever'
 import { ChatOpenAI } from '@langchain/openai'
 
+const EXEC_VALIDATION = false
 const AGENT_MODEL = process.env.AGENT_MODEL || 'gpt-4o-mini'
+const PLANNER_PROMPT = {
+  role: 'system',
+  content: `
+    You are an action planner that converts user queries into structured plans.
+    Given a user query, break it down into:
+    1. Primary intent (what the user wants to accomplish)
+    2. Required information (what data is needed)
+    3. Expected outcome (what should happen when successful)
+    4. Potential API actions (what API endpoints might help)
+    
+    Example:
+    Query: "Show me red shoes under $50"
+    Plan:
+    - Primary intent: Search for products with specific criteria
+    - Required info: Product type (shoes), color (red), max price ($50)
+    - Expected outcome: List of matching products with prices and availability
+    - Potential API actions: Product search/filter endpoint
+  `.trim()
+}
+const EXEC_PROMPT = {
+  role: 'system',
+  content: `
+    You are an API execution planner that converts user intents into precise API calls.
+    
+    First analyze:
+    1. What specific operation the user wants to perform
+    2. What parameters are needed for this operation
+    3. Which API endpoint best matches this operation
+    
+    Then formulate the exact API request that will accomplish this goal.
+    If the request requires a body, format it as valid JSON.
+    
+    Use ONLY endpoints from the provided OpenAPI specs.
+    Validate all parameters against the requirements in the specs.
+    
+    Be precise and focus on translating user intent into a valid API action.
+  `.trim()
+}
 
 export async function APITool(
   query: string,
   apiName: string,
   conversationHistory: string[] = []
 ) {
-  // First, plan the action before retrieving API specs
-  const planningMessage = {
-    role: 'system',
-    content: `
-      You are an action planner that converts user queries into structured plans.
-      Given a user query, break it down into:
-      1. Primary intent (what the user wants to accomplish)
-      2. Required information (what data is needed)
-      3. Expected outcome (what should happen when successful)
-      4. Potential API actions (what API endpoints might help)
-      
-      Example:
-      Query: "Show me red shoes under $50"
-      Plan:
-      - Primary intent: Search for products with specific criteria
-      - Required info: Product type (shoes), color (red), max price ($50)
-      - Expected outcome: List of matching products with prices and availability
-      - Potential API actions: Product search/filter endpoint
-    `.trim()
-  }
 
   const llm = new ChatOpenAI({
     model: AGENT_MODEL,
@@ -38,7 +57,7 @@ export async function APITool(
 
   // Generate action plan
   const planResult = await llm.invoke([
-    planningMessage,
+    PLANNER_PROMPT,
     { role: 'user', content: query }
   ])
   console.log(`Action plan: ${planResult.content}`)
@@ -53,35 +72,23 @@ export async function APITool(
       ? `Previous conversation context:\n${conversationHistory.join('\n')}\n\n`
       : ''
 
-  const systemMessage = {
-    role: 'system',
-    content: `
-      You are an API execution planner that converts user intents into precise API calls.
-      
-      First analyze:
-      1. What specific operation the user wants to perform
-      2. What parameters are needed for this operation
-      3. Which API endpoint best matches this operation
-      
-      Then formulate the exact API request that will accomplish this goal.
-      If the request requires a body, format it as valid JSON.
-      
-      Use ONLY endpoints from the provided OpenAPI specs.
-      Validate all parameters against the requirements in the specs.
-      
-      Be precise and focus on translating user intent into a valid API action.
-    `.trim()
-  }
+  const systemMessage = EXEC_PROMPT
 
-  systemMessage.content += `\n\n${historyContext}User query: ${query}\n\nAction plan: ${planResult.content}\n\nAvailable OpenAPI specs:\n${context}`
+  systemMessage.content += `\n
+    ${historyContext} 
+    User query: ${query}\n
+    Action plan: ${planResult.content}\n
+    Available OpenAPI specs:\n
+    ${context}`
 
   // Generate final API execution plan
   const result = await llm.invoke([systemMessage])
 
-  // Validate the generated action against the original intent
-  const validationMessage = {
-    role: 'system',
-    content: `
+  if (EXEC_VALIDATION) {
+    // Validate the generated action against the original intent
+    const validationMessage = {
+      role: 'system',
+      content: `
       Validate if the following API execution plan correctly addresses the user's query.
       
       User query: ${query}
@@ -92,32 +99,43 @@ export async function APITool(
       "VALID" if the execution plan correctly addresses the user's query, or
       "NEEDS_REVISION: [specific reason]" if the plan doesn't properly address the query.
     `.trim()
-  }
-
-  const validationResult = await llm.invoke([validationMessage])
-  const validationResponse = validationResult.content.toString()
-
-  if (validationResponse.includes('NEEDS_REVISION')) {
-    console.log(`Validation failed: ${validationResponse}`)
-    // Try one more time with the feedback
-    const revisedSystemMessage = {
-      role: 'system',
-      content: `
-        Revise the API execution plan based on this feedback: ${validationResponse}
-        
-        User query: ${query}
-        Previous plan: ${result.content}
-        Available OpenAPI specs:\n${context}
-      `.trim()
     }
 
-    const revisedResult = await llm.invoke([revisedSystemMessage])
-    console.log(`Revised APITool result: ${revisedResult.content}`)
-    return revisedResult.content
+    const validationResult = await llm.invoke([validationMessage])
+    const validationResponse = validationResult.content.toString()
+
+    if (validationResponse.includes('NEEDS_REVISION')) {
+      console.log(`Validation failed: ${validationResponse}`)
+      // Try one more time with the feedback
+      return await reviseApiPlan(query, validationResponse, result.content.toString(), context, llm)
+    }
   }
 
   console.log(`APITool result: ${result.content}`)
   return result.content
+}
+
+async function reviseApiPlan(
+  query: string,
+  validationResponse: string,
+  previousPlan: string,
+  context: string,
+  llm: ChatOpenAI
+): Promise<string> {
+  const revisedSystemMessage = {
+    role: 'system',
+    content: `
+      Revise the API execution plan based on this feedback: ${validationResponse}
+      
+      User query: ${query}
+      Previous plan: ${previousPlan}
+      Available OpenAPI specs:\n${context}
+    `.trim()
+  };
+
+  const revisedResult = await llm.invoke([revisedSystemMessage]);
+  console.log(`Revised APITool result: ${revisedResult.content}`);
+  return revisedResult.content.toString();
 }
 
 export const cartAPITool = tool(
