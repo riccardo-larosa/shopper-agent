@@ -6,7 +6,7 @@ import {
   execPostRequestTool,
   execPutRequestTool
 } from './utils/apiTools'
-// import { searchCatalogTool } from "./shopper/productTools";
+import { searchCatalogTool } from "./shopper/productTools";
 import { cartAgentTool } from "./shopper/cartTools";
 // import { fileTool } from "./merchandiser/fileTools";
 // import { managePIMTool } from "./merchandiser/pimTools";
@@ -48,7 +48,7 @@ export const SHOPPER_TOOLS_LIST = [
 
 // Supervised tools list with enhanced cart tool
 export const SHOPPER_SPRVR_TOOLS_LIST = [
-
+  searchCatalogTool,
   cartAgentTool
 
 ]

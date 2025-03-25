@@ -5,6 +5,11 @@ import { getOpenApiSpec } from "lib/openapis";
 import { ChatOpenAI } from "@langchain/openai";
 // import { ToolNode } from "@langchain/langgraph/prebuilt";
 // import { execGetRequestTool } from "./apiTools";
+import { RunnableConfig } from '@langchain/core/runnables';
+import { execGetRequest } from "../lib/execRequests";
+import { ShopperConfig } from '../types/shopper-schemas';
+import { resolveEpRequestParams } from '../utils/resolve-ep-request-params';
+import { APITool } from "utils/ragTools";
 
 const apiSpec = "https://elasticpath.dev/assets/openapispecs/catalog/catalog_view.yaml";
 const AGENT_MODEL = process.env.AGENT_MODEL || "gpt-4o-mini";
@@ -17,128 +22,128 @@ const getConversationHistory = (): string[] => {
   return [];
 };
 
+const USE_RAG = true;
+const API_SPEC_URL = "https://elasticpath.dev/assets/openapispecs/catalog/catalog_view.yaml";
+const PRODUCT_SYSTEM_PROMPT = `
+  Given a query from a user, analyze the intent and determine the appropriate API request to fulfill it.
+  This tool is used to search the catalog for products, categories, or specific product attributes.
+  
+  Examples:
+  * query: "search for red shoes"
+  * query: "find products in summer collection"
+  * query: "show me all categories"
+  * query: "get product details for ABC123"
+  
+  Based on the Open API specs, create a structured response with:
+  1. The request type (GET)
+  2. The endpoint to use
+  3. The query parameters
+  
+  Format your response as a JSON object with these fields:
+  {
+    "requestType": "GET",
+    "endpoint": "/catalog/products",
+    "params": {}, // Query parameters
+    "explanation": "Brief explanation of what this request will do"
+  }
+`.trim();
+
+/**
+ * Processes a product-related query and determines the appropriate API operation
+ */
+async function processProductOperation(query: string, specDetails: any) {
+  const llm = new ChatOpenAI({
+    model: AGENT_MODEL,
+    temperature: 0,
+  });
+
+  const systemMessage = {
+    role: "system",
+    content: [
+      PRODUCT_SYSTEM_PROMPT,
+      `Here is the query: ${query}`,
+      `Here are the Open API specs available: ${JSON.stringify(specDetails)}`
+    ].filter(Boolean).join('\n\n')
+  };
+
+  const result = await llm.invoke([systemMessage]);
+  console.log(`productAgentTool analysis: ${result.content}`);
+
+  const match = result.content.toString().match(/{[\s\S]*}/);
+  if (!match) {
+    throw new Error('Unable to parse response. Please try reformulating your query.');
+  }
+  
+  const responseData = JSON.parse(match[0]);
+  return responseData as {
+    requestType: string;
+    endpoint: string;
+    params: any;
+    explanation: string;
+  };
+}
+
+/**
+ * Executes a product catalog operation based on the request parameters
+ */
+async function executeProductOperation(
+  endpoint: string,
+  params: any,
+  options: any
+) {
+  return await execGetRequest({
+    endpoint,
+    params,
+    ...options
+  });
+}
+
+/**
+ * Main product search tool with improved structure
+ */
 export const searchCatalogTool = tool(
-  async ({ query }) => {
-
-    console.log(`searchCatalogTool: ${query}`);
-    const specDetails = await getOpenApiSpec(query, apiSpec);
-    console.log(`specDetails: ${JSON.stringify(specDetails).substring(0, 100)}...`);
+  async ({ query }, config: RunnableConfig<ShopperConfig>) => {
+    console.log(`searchCatalogTool query: ${query}`);
     
-    // Get conversation history for better context
-    const history = getConversationHistory();
-    const historyContext = history.length > 0 
-      ? `Previous conversation context:\n${history.join('\n')}\n\n` 
-      : '';
-
-    // First, plan the search action
-    const planningMessage = {
-      role: "system",
-      content: `
-        You are an action planner that converts user queries into structured catalog search plans.
-        Given a user query about products or categories, break it down into:
-        1. Primary search intent (what specifically are they looking for)
-        2. Search parameters (filters, sorting, or other criteria)
-        3. Expected results (products, categories, or other information)
-        
-        Example:
-        Query: "Show me red shoes under $50"
-        Plan:
-        - Primary search intent: Find products of type "shoes" with color "red" and price under $50
-        - Search parameters: product_type=shoes, color=red, price_lt=50
-        - Expected results: List of matching shoe products with prices
-      `.trim()
-    };
-
-    const llm = new ChatOpenAI({
-      model: AGENT_MODEL,
-      temperature: 0,
-    });
-
-    // Generate search plan
-    const planResult = await llm.invoke([planningMessage, { role: "user", content: query }]);
-    console.log(`Search plan: ${planResult.content}`);
-
-    const systemMessage = {
-      role: "system",
-      content: `
-        You are an API execution planner that converts search intents into precise catalog API calls.
-        
-        This tool is used to search the catalog for:
-        - Products with specific attributes or filters
-        - Categories/hierarchies/nodes in the catalog
-        - Products associated with specific categories
-        
-        Examples:
-        * Query: "show me all shoes"
-          → Search for products with attributes/tags matching "shoes"
-        * Query: "show me all categories"
-          → Search for all hierarchies/nodes in the catalog
-        * Query: "show me products in summer collection"
-          → Search for products associated with the "summer" category
-        
-        First analyze the search plan to determine:
-        1. What specific catalog entities to search for (products, categories, etc.)
-        2. What parameters and filters to use
-        3. Which API endpoint best matches this search need
-        
-        Then formulate the exact API request that will accomplish this search.
-        Use ONLY endpoints from the provided OpenAPI specs.
-        Validate all parameters against the requirements in the specs.
-        
-        Be precise and focus on translating the search intent into a valid API action.
-      `.trim()
-    };
-
-    systemMessage.content += `\n\n${historyContext}User query: ${query}\n\nSearch plan: ${planResult.content}\n\nAvailable OpenAPI specs: ${JSON.stringify(specDetails)}`;
-
-    const result = await llm.invoke([systemMessage]);
-    
-    // Validate the generated action against the original intent
-    const validationMessage = {
-      role: "system",
-      content: `
-        Validate if the following catalog search plan correctly addresses the user's query.
-        
-        User query: ${query}
-        Search plan: ${planResult.content}
-        API execution plan: ${result.content}
-        
-        Respond with either:
-        "VALID" if the execution plan correctly addresses the user's query, or
-        "NEEDS_REVISION: [specific reason]" if the plan doesn't properly address the query.
-      `.trim()
-    };
-    
-    const validationResult = await llm.invoke([validationMessage]);
-    const validationResponse = validationResult.content.toString();
-    
-    if (validationResponse.includes("NEEDS_REVISION")) {
-      console.log(`Validation failed: ${validationResponse}`);
-      // Try one more time with the feedback
-      const revisedSystemMessage = {
-        role: "system",
-        content: `
-          Revise the catalog search plan based on this feedback: ${validationResponse}
-          
-          User query: ${query}
-          Previous plan: ${result.content}
-          Available OpenAPI specs: ${JSON.stringify(specDetails)}
-        `.trim()
-      };
+    try {
+      // Get API specs
+      let specDetails;
+      if (USE_RAG) {
+        specDetails = await APITool(query, 'catalog');
+      } else {
+        specDetails = await getOpenApiSpec(query, API_SPEC_URL);
+      }
       
-      const revisedResult = await llm.invoke([revisedSystemMessage]);
-      console.log(`Revised searchCatalogTool result: ${revisedResult.content}`);
-      return revisedResult;
+      // Analyze and parse the operation
+      const { endpoint, params, explanation } = await processProductOperation(query, specDetails);
+      
+      // Validate config
+      if (!config?.configurable) {
+        throw new Error('Configuration missing. Cannot execute request.');
+      }
+      
+      // Get auth params
+      const options = await resolveEpRequestParams(
+        config.configurable.epTokenAuthentication ?? config.configurable.epKeyAuthentication,
+        config.configurable.epBaseUrl
+      );
+      
+      // Execute the operation
+      const result = await executeProductOperation(endpoint, params, options);
+      
+      // Return formatted result
+      return `${explanation}\n\nResult: ${JSON.stringify(result.data, null, 2)}`;
+      
+    } catch (error) {
+      console.error('Error executing catalog request:', error);
+      return `Error executing request: ${error.message}`;
     }
-    
-    console.log(`searchCatalogTool result: ${result.content}`);
-    return result;
   },
   {
     name: "searchCatalogTool",
-    description: "Search the catalog for a product, a category/hierarchy/node, or a brand",
+    description: "Search the catalog for products, categories, or specific product attributes",
     schema: z.object({
-      query: z.string().describe("The query to search the catalog"),
+      query: z.string().describe("The query to search the catalog (e.g., 'search for red shoes', 'show all categories')"),
     })
   }
 );
