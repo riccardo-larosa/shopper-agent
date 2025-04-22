@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "test": "vitest",
-    "test:planning": "vitest run test/planning.test.ts",
-    "test:context": "vitest run test/conversation-context.test.ts",
-    "test:validation": "vitest run test/validation.test.ts",
-    "test:apitools": "vitest run test/apiTools.test.ts",
+    "test:planning": "vitest run tests/planning.test.ts",
+    "test:context": "vitest run tests/conversation-context.test.ts",
+    "test:validation": "vitest run tests/validation.test.ts",
+    "test:apitools": "vitest run tests/apiTools.test.ts",
     "test:all": "npm run test:planning && npm run test:context && npm run test:validation && npm run test:apitools",
     "start": "tsx --experimental-wasm-modules -r dotenv/config src/index.ts",
-    "test:openapi": "tsx test/openapi.test.ts"
+    "test:openapi": "tsx tests/openapi.test.ts"
   },
   "author": "Riccardo La Rosa",
   "license": "MIT",
